@@ -85,4 +85,27 @@ public class Account {
 		return updatedAt;
 	}
 
+	/**
+	 * Returns true if balance is greater than or equal to the requested amount.
+	 */
+	public boolean hasSufficientFunds(BigDecimal amount) {
+		return balance.compareTo(amount) >= 0;
+	}
+
+	/**
+	 * Subtracts amount from balance. Caller must verify sufficient funds first.
+	 */
+	public void debit(BigDecimal amount) {
+		this.balance = this.balance.subtract(amount);
+		this.updatedAt = Instant.now();
+	}
+
+	/**
+	 * Adds amount to balance.
+	 */
+	public void credit(BigDecimal amount) {
+		this.balance = this.balance.add(amount);
+		this.updatedAt = Instant.now();
+	}
+
 }
