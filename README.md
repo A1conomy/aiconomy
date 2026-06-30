@@ -133,7 +133,7 @@ docker-compose down -v        # stop + wipe data
 | Module | Port | Status | Description |
 |--------|------|--------|-------------|
 | `aiconomy-common` | — | Active | Shared Kafka topic constants & DTOs |
-| `aiconomy-ledger` | 8081 | Skeleton | Core banking ledger (M1 adds business logic) |
+| `aiconomy-ledger` | 8081 | Active | Core banking ledger (accounts, ACID transfers) |
 | `aiconomy-market` | 8082 | Planned | Matching engine |
 | `aiconomy-analytics` | 8083 | Planned | Macro metrics |
 | `agents/` | — | Planned | Python LangGraph agents |
@@ -146,7 +146,26 @@ docker-compose down -v        # stop + wipe data
 
 ---
 
-## Environment Variables
+## Ledger API (M1)
+
+With `docker-compose up` and `./gradlew :aiconomy-ledger:bootRun`:
+
+```bash
+# Create account
+curl -s -X POST http://localhost:8081/api/v1/accounts \
+  -H "Content-Type: application/json" \
+  -d '{"ownerId":"agent-1","accountType":"CONSUMER","initialBalance":1000.00}'
+
+# Transfer (use account IDs from create response)
+curl -s -X POST http://localhost:8081/api/v1/transfers \
+  -H "Content-Type: application/json" \
+  -d '{"fromAccountId":"<source-uuid>","toAccountId":"<dest-uuid>","amount":50.00}'
+
+# Get balance
+curl -s http://localhost:8081/api/v1/accounts/<account-uuid>
+```
+
+---
 
 Copy [.env.example](.env.example) to `.env`. Key variables:
 
@@ -176,7 +195,7 @@ cd agents && pytest
 - [x] **M0a** — GitHub repo, Cursor rules, README, `.gitignore`
 - [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
 - [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
-- [ ] **M1** — Ledger microservice (ACID transfers)
+- [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
 - [ ] **M2** — Market matching engine
 - [ ] **M3** — Python agents (Ollama/Gemini)
 - [ ] **M4** — Observability (Prometheus/Grafana)
