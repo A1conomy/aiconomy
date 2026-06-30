@@ -58,6 +58,16 @@ public class OrderBookStore {
 		return bestPrice(symbol, OrderSide.SELL);
 	}
 
+	public Optional<Order> peekBestOrder(String symbol, OrderSide side) {
+		var zset = redisTemplate.opsForZSet();
+		String key = bookKey(symbol, side);
+		var top = side == OrderSide.BUY ? zset.reverseRange(key, 0, 0) : zset.range(key, 0, 0);
+		if (top == null || top.isEmpty()) {
+			return Optional.empty();
+		}
+		return findById(parseOrderId(top.iterator().next()));
+	}
+
 	public void updateRemainingQuantity(UUID orderId, BigDecimal remainingQuantity) {
 		redisTemplate.opsForHash().put(orderKey(orderId), "remainingQuantity", remainingQuantity.toPlainString());
 	}
@@ -88,6 +98,11 @@ public class OrderBookStore {
 
 	private static String zsetMember(Order order) {
 		return order.createdAt().toEpochMilli() + ":" + order.id();
+	}
+
+	private static UUID parseOrderId(String member) {
+		int separator = member.indexOf(':');
+		return UUID.fromString(member.substring(separator + 1));
 	}
 
 	private static Map<String, String> toHash(Order order) {
