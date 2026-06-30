@@ -1,0 +1,50 @@
+---
+description: English-only code/comments and no emojis except checkmarks and X marks
+alwaysApply: true
+---
+
+# Language & Style
+
+## English only
+
+All of the following must be written in **English**:
+
+- Source code identifiers (classes, methods, variables)
+- Comments and docstrings
+- Commit messages and PR descriptions
+- README and documentation
+- Log messages and exception text
+- Test names and assertion messages
+- Shell script output (except allowed symbols below)
+
+User-facing chat with the developer may stay in their preferred language; **codebase content is always English**.
+
+## No emojis in code
+
+Do **not** use emojis in:
+
+- Comments, log lines, print statements, test output, README technical sections
+
+**Allowed only:**
+
+- Checkmark: `✓` or `[x]` for pass/success indicators
+- X mark: `✗` for fail/error indicators
+
+### BAD
+
+```java
+// 🚀 Starting transfer...
+log.info("💰 Transfer complete!");
+```
+
+### GOOD
+
+```java
+// Settles a matched trade between buyer and seller accounts.
+log.info("Transfer complete: transferId={}", transferId);
+```
+
+```bash
+echo "✓ PostgreSQL accepts connections"
+echo "✗ Redis did not respond"
+```
