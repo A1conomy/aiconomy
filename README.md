@@ -95,8 +95,14 @@ docker-compose up -d
 # Verify all services healthy
 ./infra/scripts/smoke-test.sh
 
-# Run Spring tests (scaffold)
+# Run Spring tests
 ./gradlew test
+
+# Run ledger service (requires docker-compose up)
+./gradlew :aiconomy-ledger:bootRun
+
+# Health check (ledger on port 8081)
+curl http://localhost:8081/actuator/health
 ```
 
 > **New to the stack?** Read [docs/infrastructure.md](docs/infrastructure.md) — explains Docker, Kafka, Postgres, Redis in AIconomy context.
@@ -126,11 +132,17 @@ docker-compose down -v        # stop + wipe data
 
 | Module | Port | Status | Description |
 |--------|------|--------|-------------|
-| `aiconomy-common` | — | Planned | Shared events & DTOs |
-| `aiconomy-ledger` | 8081 | Planned | Core banking ledger |
+| `aiconomy-common` | — | Active | Shared Kafka topic constants & DTOs |
+| `aiconomy-ledger` | 8081 | Skeleton | Core banking ledger (M1 adds business logic) |
 | `aiconomy-market` | 8082 | Planned | Matching engine |
 | `aiconomy-analytics` | 8083 | Planned | Macro metrics |
 | `agents/` | — | Planned | Python LangGraph agents |
+
+```bash
+./gradlew :aiconomy-common:test     # common module only
+./gradlew :aiconomy-ledger:bootRun # run ledger service
+./gradlew :aiconomy-ledger:test     # ledger tests (Testcontainers needs Docker)
+```
 
 ---
 
@@ -163,7 +175,7 @@ cd agents && pytest
 
 - [x] **M0a** — GitHub repo, Cursor rules, README, `.gitignore`
 - [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
-- [ ] **M0c** — Gradle multi-project skeleton + Testcontainers
+- [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
 - [ ] **M1** — Ledger microservice (ACID transfers)
 - [ ] **M2** — Market matching engine
 - [ ] **M3** — Python agents (Ollama/Gemini)

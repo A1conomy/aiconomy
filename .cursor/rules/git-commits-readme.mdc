@@ -45,4 +45,5 @@ If code changed but README did not need an update, say so in the commit message 
 ## Branching
 
 - `main` — stable, always deployable
-- Feature branches: `feat/ledger-transfers`, `feat/docker-infra`
+- Feature branches: `feat/m0c-spring-skeleton`, `feat/ledger-transfers`
+- One branch per milestone or feature; merge to `main` when tests pass
