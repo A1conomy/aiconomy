@@ -5,8 +5,9 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.aiconomy.ledger.domain.Account;
 import com.aiconomy.ledger.repository.AccountRepository;
@@ -15,31 +16,50 @@ import com.aiconomy.ledger.service.exception.InsufficientFundsException;
 import com.aiconomy.ledger.service.exception.InvalidTransferAmountException;
 
 /**
- * Executes ACID transfers between two accounts.
- * All balance changes happen inside a single database transaction.
+ * Executes ACID transfers between two accounts with optimistic-lock retry.
  */
 @Service
 public class TransferService {
 
 	private static final Logger log = LoggerFactory.getLogger(TransferService.class);
 
+	private static final int MAX_ATTEMPTS = 3;
+
 	private final AccountRepository accountRepository;
 
-	public TransferService(AccountRepository accountRepository) {
+	private final TransactionTemplate transactionTemplate;
+
+	public TransferService(AccountRepository accountRepository, TransactionTemplate transactionTemplate) {
 		this.accountRepository = accountRepository;
+		this.transactionTemplate = transactionTemplate;
 	}
 
 	/**
 	 * Moves funds from source to destination atomically.
-	 * Rolls back entirely if any step fails.
+	 * Retries on optimistic lock conflicts up to {@link #MAX_ATTEMPTS} times.
 	 */
-	@Transactional
 	public void transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount) {
 		log.info("Transfer started: from={} to={} amount={}", fromAccountId, toAccountId, amount);
 
 		validateAmount(amount);
 		validateDifferentAccounts(fromAccountId, toAccountId);
 
+		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+			try {
+				transactionTemplate.executeWithoutResult(status -> executeTransfer(fromAccountId, toAccountId, amount));
+				log.info("Transfer completed: from={} to={} amount={}", fromAccountId, toAccountId, amount);
+				return;
+			}
+			catch (OptimisticLockingFailureException ex) {
+				log.warn("Optimistic lock conflict on transfer attempt={}/{}", attempt, MAX_ATTEMPTS);
+				if (attempt == MAX_ATTEMPTS) {
+					throw ex;
+				}
+			}
+		}
+	}
+
+	private void executeTransfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount) {
 		Account source = loadAccount(fromAccountId);
 		Account destination = loadAccount(toAccountId);
 
@@ -53,8 +73,6 @@ public class TransferService {
 
 		accountRepository.save(source);
 		accountRepository.save(destination);
-
-		log.info("Transfer completed: from={} to={} amount={}", fromAccountId, toAccountId, amount);
 	}
 
 	private void validateAmount(BigDecimal amount) {
