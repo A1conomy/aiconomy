@@ -57,3 +57,12 @@ aiconomy/
 ```
 
 *Update this document as modules are implemented.*
+
+### M2 settlement flow (implemented)
+
+```
+POST /api/v1/orders  →  MatchingEngine (Redis)
+                     →  LedgerSettlementClient (HTTP POST /transfers)
+```
+
+Kafka event publishing is planned as a follow-up; REST API is the current entry point for agents and curl testing.

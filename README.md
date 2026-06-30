@@ -138,7 +138,7 @@ docker-compose down -v        # stop + wipe data
 |--------|------|--------|-------------|
 | `aiconomy-common` | — | Active | Shared Kafka topic constants & DTOs |
 | `aiconomy-ledger` | 8081 | Active | Core banking ledger (accounts, ACID transfers) |
-| `aiconomy-market` | 8082 | Active (skeleton) | Matching engine — Redis order book + Kafka |
+| `aiconomy-market` | 8082 | Active | Matching engine — Redis order book, REST API, ledger settlement |
 | `aiconomy-analytics` | 8083 | Planned | Macro metrics |
 | `agents/` | — | Planned | Python LangGraph agents |
 
@@ -173,6 +173,63 @@ curl -s http://localhost:8081/api/v1/accounts/<account-uuid>
 
 ---
 
+## Market API (M2)
+
+Requires **ledger** (8081) and **market** (8082) running, plus Redis from `docker-compose`:
+
+```bash
+# Terminal 1 — infrastructure
+docker-compose up -d
+
+# Terminal 2 — ledger
+./gradlew :aiconomy-ledger:bootRun
+
+# Terminal 3 — market
+./gradlew :aiconomy-market:bootRun
+```
+
+### End-to-end trade (curl)
+
+```bash
+# 1. Create seller account (needs balance to receive payment later)
+curl -s -X POST http://localhost:8081/api/v1/accounts \
+  -H "Content-Type: application/json" \
+  -d '{"ownerId":"seller-1","accountType":"FIRM","initialBalance":0.00}'
+
+# 2. Create buyer account with funds
+curl -s -X POST http://localhost:8081/api/v1/accounts \
+  -H "Content-Type: application/json" \
+  -d '{"ownerId":"buyer-1","accountType":"CONSUMER","initialBalance":500.00}'
+
+# Copy account UUIDs from the JSON responses, then:
+
+# 3. Resting sell order — 5 WIDGET @ 10.00 (no trade yet)
+curl -s -X POST http://localhost:8082/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"accountId":"<seller-uuid>","symbol":"WIDGET","side":"SELL","price":10.00,"quantity":5.00}'
+
+# 4. Matching buy — 3 WIDGET @ 12.00 → trades 3 @ 10.00, settles 30.00 via ledger
+curl -s -X POST http://localhost:8082/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"accountId":"<buyer-uuid>","symbol":"WIDGET","side":"BUY","price":12.00,"quantity":3.00}'
+
+# 5. Top of book (2 WIDGET still offered @ 10.00)
+curl -s http://localhost:8082/api/v1/market/WIDGET/top
+
+# 6. Verify balances (buyer -30.00, seller +30.00)
+curl -s http://localhost:8081/api/v1/accounts/<buyer-uuid>
+curl -s http://localhost:8081/api/v1/accounts/<seller-uuid>
+```
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/orders` | POST | Submit limit order; match + settle trades |
+| `/api/v1/market/{symbol}/top` | GET | Best bid / best ask snapshot |
+
+Settlement follows **ADR-004**: match in Redis → `POST /transfers` on ledger (`price × quantity`).
+
+---
+
 Copy [.env.example](.env.example) to `.env`. Key variables:
 
 | Variable | Default | Description |
@@ -181,6 +238,7 @@ Copy [.env.example](.env.example) to `.env`. Key variables:
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
 | `POSTGRES_*` | see `.env.example` | Ledger database |
 | `REDIS_HOST` | `localhost` | Order book cache |
+| `LEDGER_BASE_URL` | `http://localhost:8081` | Ledger URL for market settlement |
 
 ---
 
@@ -202,7 +260,8 @@ cd agents && pytest
 - [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
 - [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
 - [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
-- [ ] **M2** — Market matching engine *(in progress — module skeleton)*
+- [x] **M2** — Market matching engine (Redis order book, REST API, ledger settlement)
+- [ ] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`) *(follow-up)*
 - [ ] **M3** — Python agents (Ollama/Gemini)
 - [ ] **M4** — Observability (Prometheus/Grafana)
 - [ ] **M5** — CI, E2E, CV polish

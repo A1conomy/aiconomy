@@ -40,6 +40,10 @@ management:
 server:
   port: ${SERVER_PORT:8082}
 
+aiconomy:
+  ledger:
+    base-url: ${LEDGER_BASE_URL:http://localhost:8081}
+
 logging:
   level:
     com.aiconomy: INFO
