@@ -1,0 +1,39 @@
+---
+description: Read and update local session log for continuity across Cursor chats
+alwaysApply: true
+---
+
+# Session Context (local, not on GitHub)
+
+## On every new task or after context reset
+
+1. Read [.local/session-log.md](../../.local/session-log.md) if it exists.
+2. Use it for: milestones done, current branch, key decisions, blockers, next steps.
+3. Do **not** duplicate README or architecture docs — session log is chat continuity only.
+
+## When to update session-log.md
+
+Update at the end of a work session or when completing a milestone:
+
+- What was done (brief)
+- Current branch and merge status
+- Decisions made and why
+- Known issues / fixes applied
+- Explicit next step for the next chat
+
+## Format for append
+
+```markdown
+## YYYY-MM-DD — Short title
+
+- Branch: ...
+- Done: ...
+- Decisions: ...
+- Next: ...
+```
+
+## Rules
+
+- File lives in `.local/` — gitignored, never commit.
+- Keep entries concise (bullet points, not full chat dumps).
+- English for file content (project convention).

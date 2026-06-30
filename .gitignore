@@ -42,6 +42,9 @@ bin/
 !.cursor/rules/
 !.cursor/skills/
 
+# --- Local dev notes (never push) ---
+.local/
+
 # --- Secrets (NEVER commit) ---
 .env
 .env.*
