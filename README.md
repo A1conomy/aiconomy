@@ -85,7 +85,7 @@ See [docs/architecture.md](docs/architecture.md) for ADRs.
 
 ```bash
 # Clone
-git clone https://github.com/AIconomy/aiconomy.git
+git clone https://github.com/A1conomy/aiconomy.git
 cd aiconomy
 
 # Copy environment template
