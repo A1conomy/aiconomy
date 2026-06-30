@@ -81,21 +81,43 @@ See [docs/architecture.md](docs/architecture.md) for ADRs.
 
 ## Quick Start
 
-> Infrastructure and services are added incrementally. See Roadmap below.
-
 ```bash
 # Clone
 git clone https://github.com/A1conomy/aiconomy.git
 cd aiconomy
 
-# Copy environment template
+# Environment (optional — defaults match docker-compose)
 cp .env.example .env
 
-# Run tests (Spring scaffold)
-./gradlew test
+# Start infrastructure (Postgres, Kafka, Redis)
+docker-compose up -d
 
-# Docker stack — available from Milestone 0b
-# docker compose up -d
+# Verify all services healthy
+./infra/scripts/smoke-test.sh
+
+# Run Spring tests (scaffold)
+./gradlew test
+```
+
+> **New to the stack?** Read [docs/infrastructure.md](docs/infrastructure.md) — explains Docker, Kafka, Postgres, Redis in AIconomy context.
+
+---
+
+## Infrastructure (M0b)
+
+| Service | Host port | Container | Purpose |
+|---------|-----------|-----------|---------|
+| PostgreSQL 16 | `5432` | `aiconomy-postgres` | ACID ledger database |
+| Redis 7 | `6379` | `aiconomy-redis` | Order book (M2) |
+| Kafka 3.8 (KRaft) | `9092` | `aiconomy-kafka` | Event backbone |
+
+**Kafka topics** (auto-created): `orders.submitted`, `trades.executed`, `ledger.commands`, `ledger.events`, `market.quotes`, `macro.snapshots`, `simulation.tick`
+
+```bash
+docker-compose up -d          # start
+docker-compose down           # stop
+docker-compose down -v        # stop + wipe data
+./infra/scripts/smoke-test.sh # health check
 ```
 
 ---
@@ -140,7 +162,7 @@ cd agents && pytest
 ## Roadmap
 
 - [x] **M0a** — GitHub repo, Cursor rules, README, `.gitignore`
-- [ ] **M0b** — Docker Compose (Postgres, Kafka, Redis)
+- [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
 - [ ] **M0c** — Gradle multi-project skeleton + Testcontainers
 - [ ] **M1** — Ledger microservice (ACID transfers)
 - [ ] **M2** — Market matching engine
