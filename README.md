@@ -101,8 +101,12 @@ docker-compose up -d
 # Run ledger service (requires docker-compose up)
 ./gradlew :aiconomy-ledger:bootRun
 
-# Health check (ledger on port 8081)
+# Run market service (requires docker-compose up)
+./gradlew :aiconomy-market:bootRun
+
+# Health check (ledger on port 8081, market on port 8082)
 curl http://localhost:8081/actuator/health
+curl http://localhost:8082/actuator/health
 ```
 
 > **New to the stack?** Read [docs/infrastructure.md](docs/infrastructure.md) — explains Docker, Kafka, Postgres, Redis in AIconomy context.
@@ -134,7 +138,7 @@ docker-compose down -v        # stop + wipe data
 |--------|------|--------|-------------|
 | `aiconomy-common` | — | Active | Shared Kafka topic constants & DTOs |
 | `aiconomy-ledger` | 8081 | Active | Core banking ledger (accounts, ACID transfers) |
-| `aiconomy-market` | 8082 | Planned | Matching engine |
+| `aiconomy-market` | 8082 | Active (skeleton) | Matching engine — Redis order book + Kafka |
 | `aiconomy-analytics` | 8083 | Planned | Macro metrics |
 | `agents/` | — | Planned | Python LangGraph agents |
 
@@ -142,6 +146,8 @@ docker-compose down -v        # stop + wipe data
 ./gradlew :aiconomy-common:test     # common module only
 ./gradlew :aiconomy-ledger:bootRun # run ledger service
 ./gradlew :aiconomy-ledger:test     # ledger tests (Testcontainers needs Docker)
+./gradlew :aiconomy-market:bootRun # run market service
+./gradlew :aiconomy-market:test     # market tests
 ```
 
 ---
@@ -196,7 +202,7 @@ cd agents && pytest
 - [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
 - [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
 - [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
-- [ ] **M2** — Market matching engine
+- [ ] **M2** — Market matching engine *(in progress — module skeleton)*
 - [ ] **M3** — Python agents (Ollama/Gemini)
 - [ ] **M4** — Observability (Prometheus/Grafana)
 - [ ] **M5** — CI, E2E, CV polish

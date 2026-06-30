@@ -2,3 +2,4 @@ rootProject.name = 'aiconomy'
 
 include 'aiconomy-common'
 include 'aiconomy-ledger'
+include 'aiconomy-market'
