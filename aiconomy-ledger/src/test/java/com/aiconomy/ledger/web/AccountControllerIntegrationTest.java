@@ -92,6 +92,28 @@ class AccountControllerIntegrationTest {
 		assertThat(response.statusCode()).isEqualTo(404);
 	}
 
+	@Test
+	void malformedJsonReturns400WithErrorBody() throws Exception {
+		HttpResponse<String> response = post("http://localhost:" + port + "/api/v1/accounts", "{ not json");
+
+		assertThat(response.statusCode()).isEqualTo(400);
+		assertThat(response.body()).isEqualTo("{\"error\":\"Malformed JSON request body\"}");
+	}
+
+	@Test
+	void validationFailureReturns400WithFieldError() throws Exception {
+		HttpResponse<String> response = post("http://localhost:" + port + "/api/v1/accounts", """
+				{
+				  "ownerId": "",
+				  "accountType": "CONSUMER",
+				  "initialBalance": 10.00
+				}
+				""");
+
+		assertThat(response.statusCode()).isEqualTo(400);
+		assertThat(response.body()).contains("\"error\":\"ownerId:");
+	}
+
 	private HttpResponse<String> post(String url, String json) throws Exception {
 		HttpRequest request = HttpRequest.newBuilder()
 			.uri(URI.create(url))
