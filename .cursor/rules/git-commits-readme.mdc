@@ -1,0 +1,48 @@
+---
+description: Git commit conventions and README sync before every push
+alwaysApply: true
+---
+
+# Git & README Discipline
+
+## Commit Format (Conventional Commits)
+
+```
+type(scope): short imperative description
+
+Optional body explaining why.
+```
+
+**Types:** `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `security`
+
+**Examples:**
+```
+feat(ledger): add optimistic locking on Account entity
+test(market): add unit tests for price-time priority matcher
+docs: update README with ledger API examples
+chore(infra): add docker-compose with kafka and postgres
+```
+
+## Commit Rules
+
+- **One logical change per commit** (target ≤200 LOC diff).
+- Commit **before** starting the next feature or module.
+- Never commit: `.env`, keys, passwords, `application-local.*`.
+- Never use `--no-verify` unless the user explicitly requests it.
+
+## README Sync (required before push)
+
+Update [README.md](../../README.md) when any of these change:
+
+- New module or service
+- New environment variable
+- New API endpoint or Kafka topic
+- Architecture or quick-start steps
+- Milestone completed (check roadmap section)
+
+If code changed but README did not need an update, say so in the commit message body.
+
+## Branching
+
+- `main` — stable, always deployable
+- Feature branches: `feat/ledger-transfers`, `feat/docker-infra`

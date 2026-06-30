@@ -1,0 +1,31 @@
+---
+description: Python agent conventions — LLM abstraction, Kafka-only messaging
+globs: "agents/**/*.py"
+alwaysApply: false
+---
+
+# Python Agent Conventions
+
+## LLM Provider (mandatory abstraction)
+
+- All agents use `create_provider()` from `agents/common/llm/` — never import Ollama or Gemini directly in agent logic.
+- Switch provider via `LLM_PROVIDER=ollama|gemini` env var.
+- Tests use `MockLLMProvider` with deterministic responses.
+
+## Agent Communication
+
+- **Only Kafka** for inter-agent and agent-to-platform messaging. No HTTP calls between agents.
+- Consume: `market.quotes`, `macro.snapshots`, `simulation.tick`, `agent.{id}.balance`.
+- Produce: `orders.submitted`, `credit.applications`.
+
+## Code Style
+
+- Type hints on all public functions.
+- One agent role per package: `consumer_agent/`, `firm_agent/`, `central_bank_agent/`.
+- LangGraph: explicit state graph (observe → decide → act); document nodes in module docstring.
+- Structured logging with `correlation_id` from Kafka headers.
+
+## Testing
+
+- `pytest` for every agent decision function.
+- No real LLM calls in CI — always mock the provider.

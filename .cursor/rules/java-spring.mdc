@@ -1,0 +1,40 @@
+---
+description: Spring Boot and Java conventions for AIconomy services
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Java / Spring Conventions
+
+## Package Structure (per module)
+
+```
+com.aiconomy.{module}/
+  config/       # @Configuration, beans
+  domain/       # JPA entities (internal only)
+  dto/          # Request/response records
+  event/        # Kafka listeners/producers (or use common events)
+  repository/   # Spring Data interfaces
+  service/      # Business logic
+  web/          # @RestController (thin)
+```
+
+## Rules
+
+- Controllers: validate input (`@Valid`), delegate to service, return DTOs — no `@Transactional` in controllers.
+- Services: `@Transactional` boundaries; throw domain exceptions, not generic `RuntimeException`.
+- Entities: never expose directly via REST; map to DTOs.
+- Concurrency on accounts: `@Version` optimistic lock; `PESSIMISTIC_WRITE` only when documented.
+- Kafka consumers: idempotent processing with event ID deduplication table or Redis set.
+- Configuration: `@ConfigurationProperties` + env vars; never hardcode secrets.
+
+## Example — thin controller
+
+```java
+@PostMapping("/transfers")
+public TransferResponse transfer(@Valid @RequestBody TransferRequest request) {
+    return transferService.execute(request);
+}
+```
+
+Business rules belong in `TransferService`, not here.

@@ -1,0 +1,87 @@
+# --- Java / Gradle ---
+.gradle/
+build/
+out/
+*.class
+*.jar
+*.war
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# --- IDE ---
+.idea/
+*.iws
+*.iml
+*.ipr
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code — keep shared settings if added later
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Cursor — track rules & skills; ignore local state
+.cursor/*
+!.cursor/rules/
+!.cursor/skills/
+
+# --- Secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets/
+**/application-local.properties
+**/application-local.yml
+
+# --- Python (agents/) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+htmlcov/
+.coverage
+
+# --- Docker / runtime data ---
+docker-data/
+volumes/
+*.log
+logs/
+tmp/
+
+# --- Ollama local models (large) ---
+models/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- HELP.md from Spring Initializr (replaced by README) ---
+HELP.md

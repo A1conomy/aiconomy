@@ -1,0 +1,40 @@
+---
+description: Core OOP, SOLID, design patterns, and readability standards for AIconomy
+alwaysApply: true
+---
+
+# AIconomy Core Standards
+
+## Architecture
+
+- **Layered design:** Controller → Service → Repository. No business logic in controllers.
+- **Decoupling:** Depend on interfaces, not implementations. External systems (Kafka, Redis, LLM) behind adapters.
+- **Events as contracts:** Shared DTOs/events live in `aiconomy-common`; services never share entity classes.
+
+## OOP & Design Patterns
+
+Apply patterns where they clarify intent:
+
+| Pattern | Use in AIconomy |
+|---------|-----------------|
+| **Strategy** | `LLMProvider` (Ollama vs Gemini), matching algorithms |
+| **Repository** | JPA data access |
+| **Observer** | Kafka event publishing/consuming |
+| **Saga** | Cross-service trade settlement |
+| **Factory** | Agent and order creation |
+
+Follow **SOLID**: single responsibility per class; open for extension via interfaces; inject dependencies.
+
+## Comments & Documentation
+
+- **Java:** Javadoc on public classes and non-trivial methods. Explain *why* and business invariants (e.g. "debit amount must equal credit amount").
+- **Python:** Docstrings on modules/ module-level functions and agent classes.
+- Do **not** comment obvious code (`// increment i`).
+- Each module README or package-info: one paragraph describing its bounded context.
+
+## Code Quality
+
+- Money: always `BigDecimal` with fixed scale (2). Never `double`/`float` for amounts.
+- Prefer immutable DTOs for events crossing service boundaries.
+- Max ~200 lines per class; extract when a class has more than one reason to change.
+- Name classes and methods after domain language: `TransferService`, `OrderBook`, `LedgerEntry`.

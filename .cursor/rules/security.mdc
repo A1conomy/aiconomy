@@ -1,0 +1,34 @@
+---
+description: Security requirements and mandatory security review triggers
+alwaysApply: true
+---
+
+# Security Standards
+
+## Never
+
+- Commit secrets (`.env`, API keys, passwords, private keys)
+- Log sensitive data (passwords, full account numbers, API keys)
+- Use string concatenation for SQL — JPA/Hibernate parameterized queries only
+- Expose stack traces in production API responses
+- Run Docker containers as root in production configs
+
+## Always
+
+- Secrets via environment variables or Spring `@ConfigurationProperties`
+- Validate all REST input with `@Valid` and Bean Validation
+- Use HTTPS in production; restrict actuator endpoints
+- Include `correlationId` in logs and Kafka headers (not PII)
+- Pin dependency versions; run OWASP dependency-check in CI (Milestone 5)
+
+## Security Review Trigger
+
+When adding or modifying any of the following, invoke the **aiconomy-security** skill before merging:
+
+- REST endpoints or auth
+- Kafka topic handlers processing external input
+- File or env configuration loading
+- New Maven/PyPI dependencies
+- Docker or deployment configs
+
+See [.cursor/skills/aiconomy-security/SKILL.md](../skills/aiconomy-security/SKILL.md).

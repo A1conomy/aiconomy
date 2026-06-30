@@ -1,0 +1,31 @@
+---
+description: Mandatory unit tests for every feature in AIconomy
+alwaysApply: true
+---
+
+# Testing Standards
+
+## Rule: No feature without tests
+
+Every new class with business logic must ship with unit tests in the same commit series.
+
+## Java
+
+- **Unit tests:** JUnit 5 + Mockito; test services in isolation.
+- **Integration tests:** Testcontainers for Postgres, Kafka, Redis.
+- **Naming:** `MethodName_State_ExpectedBehavior` (e.g. `transfer_insufficientFunds_throwsException`).
+- **Concurrency tests:** Required for ledger transfers (multi-thread, assert invariants).
+- Run: `./gradlew test` — must pass before commit.
+
+## Python
+
+- **Framework:** pytest
+- **LLM:** always `MockLLMProvider` in tests — no network calls in CI.
+- **Coverage target:** decision logic and event serialization at minimum.
+
+## TDD Preferred
+
+1. Write failing test
+2. Implement minimal code to pass
+3. Refactor
+4. Commit test + implementation together (or test first, then impl in immediate next commit)
