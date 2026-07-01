@@ -83,11 +83,15 @@ services:
             --topic "$$1" --partitions 3 --replication-factor 1
           echo "Topic ready: $$1"
         }
-        create_topic orders.submitted
-        create_topic trades.executed
+        create_topic tasks.posted
+        create_topic tasks.claimed
+        create_topic tasks.delivered
+        create_topic tasks.accepted
+        create_topic tasks.rejected
+        create_topic payments.proposed
+        create_topic payments.accepted
         create_topic ledger.commands
         create_topic ledger.events
-        create_topic market.quotes
         create_topic macro.snapshots
         create_topic simulation.tick
         echo "All Kafka topics initialized."

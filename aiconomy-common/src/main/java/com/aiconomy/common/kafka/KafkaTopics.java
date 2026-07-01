@@ -6,15 +6,23 @@ package com.aiconomy.common.kafka;
  */
 public final class KafkaTopics {
 
-	public static final String ORDERS_SUBMITTED = "orders.submitted";
+	public static final String TASKS_POSTED = "tasks.posted";
 
-	public static final String TRADES_EXECUTED = "trades.executed";
+	public static final String TASKS_CLAIMED = "tasks.claimed";
+
+	public static final String TASKS_DELIVERED = "tasks.delivered";
+
+	public static final String TASKS_ACCEPTED = "tasks.accepted";
+
+	public static final String TASKS_REJECTED = "tasks.rejected";
+
+	public static final String PAYMENTS_PROPOSED = "payments.proposed";
+
+	public static final String PAYMENTS_ACCEPTED = "payments.accepted";
 
 	public static final String LEDGER_COMMANDS = "ledger.commands";
 
 	public static final String LEDGER_EVENTS = "ledger.events";
-
-	public static final String MARKET_QUOTES = "market.quotes";
 
 	public static final String MACRO_SNAPSHOTS = "macro.snapshots";
 

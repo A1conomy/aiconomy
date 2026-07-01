@@ -1,12 +1,12 @@
 # AIconomy
 
-![CI](https://github.com/A1conomy/aiconomy/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/A1conomy/aiconomy/actions/workflows/ci.yml/badge.svg?branch=main)
 
-> Event-Driven Agent-Based Macroeconomic Simulation Platform
+> Event-Driven Multi-Agent Freelancing Economy
 
-AIconomy simulates an autonomous economy where AI agents (consumers, firms, central bank) make financial decisions in a distributed, event-driven system. A **Core Banking Ledger** guarantees ACID fund transfers; an **Open Market Matching Engine** matches buy/sell orders in real time; **Python/LangGraph agents** act autonomously based on macroeconomic state.
+AIconomy simulates a **services marketplace** where AI agents negotiate, delegate, and get paid for work. Clients post projects; **manager agents** negotiate price and orchestrate delivery; **worker agents** claim specialized tasks and collaborate via subcontracting. A **Core Banking Ledger** (Spring Boot) provides ACID payments and (planned) escrow.
 
-Built as a **Gradle multi-module / microservices-ready** platform for learning and demonstrating enterprise system design.
+Built as a **Gradle multi-module / microservices-ready** platform for learning and demonstrating enterprise + agentic system design.
 
 ---
 
@@ -15,30 +15,28 @@ Built as a **Gradle multi-module / microservices-ready** platform for learning a
 ```mermaid
 flowchart TB
     subgraph agents [Python Agents]
-        Consumer[ConsumerAgent]
-        Firm[FirmAgent]
-        CB[CentralBankAgent]
+        Client[ClientAgent]
+        Manager[ManagerAgent]
+        Worker[WorkerAgent]
     end
 
     subgraph java [Java Services]
-        Ledger[aiconomy-ledger]
-        Market[aiconomy-market]
-        Analytics[aiconomy-analytics]
+        Tasks[aiconomy-tasks planned]
+        Ledger[aiconomy-ledger :8081]
+        Analytics[aiconomy-analytics planned]
         Common[aiconomy-common]
     end
 
     subgraph infra [Infrastructure]
         Kafka[Apache Kafka]
         Postgres[(PostgreSQL)]
-        Redis[(Redis)]
     end
 
-    Consumer --> Kafka
-    Firm --> Kafka
-    CB --> Kafka
-    Kafka --> Market
-    Kafka --> Ledger
-    Market --> Redis
+    Client -->|tasks.posted| Kafka
+    Manager -->|negotiate + hire| Kafka
+    Worker -->|tasks.claimed / delivered| Kafka
+    Kafka --> Tasks
+    Tasks --> Ledger
     Ledger --> Postgres
     Analytics --> Postgres
     Analytics --> Kafka
@@ -46,12 +44,20 @@ flowchart TB
 
 | Bounded context | Responsibility |
 |-----------------|----------------|
-| **Ledger** | Central bank, double-entry bookkeeping, ACID transfers |
-| **Market** | Order book, price-time matching, trade events |
-| **Analytics** | Macro metrics (GDP, inflation, credit volume) |
-| **Agents** | Autonomous AI actors via Kafka (no direct agent-to-agent calls) |
+| **Ledger** | ACID accounts, transfers, escrow hold/release (planned) |
+| **Tasks** | Task board — post, claim, deliver, accept/reject (planned) |
+| **Analytics** | Macro metrics — task volume, avg rates, utilization (planned) |
+| **Agents** | Client, manager, worker roles via Kafka (no direct agent-to-agent HTTP) |
 
 See [docs/architecture.md](docs/architecture.md) for ADRs.
+
+### Agent roles
+
+| Agent | Real-world analogue | Responsibilities |
+|-------|---------------------|------------------|
+| **ClientAgent** | Company / project owner | Posts projects, accepts or rejects deliveries, pays from budget |
+| **ManagerAgent** | Agency lead / PM | Negotiates price with client, hires workers, monitors progress |
+| **WorkerAgent** | Freelancer | Claims tasks, delivers work, negotiates subcontract pay |
 
 ---
 
@@ -59,14 +65,13 @@ See [docs/architecture.md](docs/architecture.md) for ADRs.
 
 | Layer | Technology | Role |
 |-------|------------|------|
-| Core | Spring Boot 4.x, Java 21 | Banking & market services |
-| Messaging | Apache Kafka (KRaft) | Event backbone, audit, replay |
+| Core | Spring Boot 4.x, Java 21 | Ledger + task service |
+| Messaging | Apache Kafka (KRaft) | Task lifecycle, payments, simulation clock |
 | Ledger DB | PostgreSQL | ACID source of truth |
-| Order book | Redis | Hot in-memory matching state |
-| AI agents | Python, LangGraph | Autonomous market participants |
+| AI agents | Python, LangGraph (planned) | Negotiation, orchestration, delivery |
 | LLM (dev) | Ollama | Unlimited local iteration |
 | LLM (prod) | Gemini API | Demo-quality decisions |
-| Observability | Micrometer, Prometheus, Grafana | Tech + macro dashboards |
+| Observability | Micrometer, Prometheus, Grafana (planned) | Tech + economy dashboards |
 | Runtime | Docker Compose | Local full stack |
 
 ---
@@ -75,8 +80,8 @@ See [docs/architecture.md](docs/architecture.md) for ADRs.
 
 - **Java 21** (JDK)
 - **Docker** & Docker Compose
-- **Python 3.11+** (for agents, Milestone 3)
-- **Ollama** (optional, for local LLM — [ollama.ai](https://ollama.ai))
+- **Python 3.11+** (for agents)
+- **Ollama** (optional — [ollama.ai](https://ollama.ai))
 - **Git**
 
 ---
@@ -84,52 +89,39 @@ See [docs/architecture.md](docs/architecture.md) for ADRs.
 ## Quick Start
 
 ```bash
-# Clone
 git clone https://github.com/A1conomy/aiconomy.git
 cd aiconomy
 
-# Environment (optional — defaults match docker-compose)
 cp .env.example .env
 
-# Start infrastructure (Postgres, Kafka, Redis)
 docker-compose up -d
-
-# Verify all services healthy
 ./infra/scripts/smoke-test.sh
 
-# Run Spring tests
 ./gradlew test
 
-# Run ledger service (requires docker-compose up)
 ./gradlew :aiconomy-ledger:bootRun
-
-# Run market service (requires docker-compose up)
-./gradlew :aiconomy-market:bootRun
-
-# Health check (ledger on port 8081, market on port 8082)
 curl http://localhost:8081/actuator/health
-curl http://localhost:8082/actuator/health
 ```
 
-> **New to the stack?** Read [docs/infrastructure.md](docs/infrastructure.md) — explains Docker, Kafka, Postgres, Redis in AIconomy context.
+> **New to the stack?** Read [docs/infrastructure.md](docs/infrastructure.md).
 
 ---
 
-## Infrastructure (M0b)
+## Infrastructure
 
 | Service | Host port | Container | Purpose |
 |---------|-----------|-----------|---------|
-| PostgreSQL 16 | `5432` | `aiconomy-postgres` | ACID ledger database |
-| Redis 7 | `6379` | `aiconomy-redis` | Order book (M2) |
+| PostgreSQL 16 | `5432` | `aiconomy-postgres` | Ledger database |
+| Redis 7 | `6379` | `aiconomy-redis` | Reserved for future hot state |
 | Kafka 3.8 (KRaft) | `9092` | `aiconomy-kafka` | Event backbone |
 
-**Kafka topics** (auto-created): `orders.submitted`, `trades.executed`, `ledger.commands`, `ledger.events`, `market.quotes`, `macro.snapshots`, `simulation.tick`
+**Kafka topics** (auto-created): `tasks.posted`, `tasks.claimed`, `tasks.delivered`, `tasks.accepted`, `tasks.rejected`, `payments.proposed`, `payments.accepted`, `ledger.commands`, `ledger.events`, `macro.snapshots`, `simulation.tick`
 
 ```bash
-docker-compose up -d          # start
-docker-compose down           # stop
-docker-compose down -v        # stop + wipe data
-./infra/scripts/smoke-test.sh # health check
+docker-compose up -d
+docker-compose down
+docker-compose down -v        # wipe data
+./infra/scripts/smoke-test.sh
 ```
 
 ---
@@ -138,165 +130,107 @@ docker-compose down -v        # stop + wipe data
 
 | Module | Port | Status | Description |
 |--------|------|--------|-------------|
-| `aiconomy-common` | — | Active | Shared Kafka topic constants & DTOs |
-| `aiconomy-ledger` | 8081 | Active | Core banking ledger (accounts, ACID transfers) |
-| `aiconomy-market` | 8082 | Active | Matching engine — Redis order book, REST API, ledger settlement |
+| `aiconomy-common` | — | Active | Kafka topic constants |
+| `aiconomy-ledger` | 8081 | Active | Core banking — accounts, ACID transfers |
+| `aiconomy-tasks` | 8082 | Planned | Task board + lifecycle |
 | `aiconomy-analytics` | 8083 | Planned | Macro metrics |
-| `agents/` | — | Planned | Python LangGraph agents |
+| `agents/` | — | Baseline | Python agent packages (placeholders) |
 
 ```bash
-./gradlew :aiconomy-common:test     # common module only
-./gradlew :aiconomy-ledger:bootRun # run ledger service
-./gradlew :aiconomy-ledger:test     # ledger tests (Testcontainers needs Docker)
-./gradlew :aiconomy-market:bootRun # run market service
-./gradlew :aiconomy-market:test     # market tests
+./gradlew :aiconomy-common:test
+./gradlew :aiconomy-ledger:bootRun
+./gradlew :aiconomy-ledger:test
 ```
 
 ---
 
-## Ledger API (M1)
+## Ledger API
 
 With `docker-compose up` and `./gradlew :aiconomy-ledger:bootRun`:
 
 ```bash
-# Create account
 curl -s -X POST http://localhost:8081/api/v1/accounts \
   -H "Content-Type: application/json" \
-  -d '{"ownerId":"agent-1","accountType":"CONSUMER","initialBalance":1000.00}'
+  -d '{"ownerId":"client-1","accountType":"CLIENT","initialBalance":5000.00}'
 
-# Transfer (use account IDs from create response)
 curl -s -X POST http://localhost:8081/api/v1/transfers \
   -H "Content-Type: application/json" \
-  -d '{"fromAccountId":"<source-uuid>","toAccountId":"<dest-uuid>","amount":50.00}'
+  -d '{"fromAccountId":"<source-uuid>","toAccountId":"<dest-uuid>","amount":200.00}'
 
-# Get balance
 curl -s http://localhost:8081/api/v1/accounts/<account-uuid>
 ```
 
 ---
 
-## Market API (M2)
+## Python Agents (baseline)
 
-Requires **ledger** (8081) and **market** (8082) running, plus Redis from `docker-compose`:
-
-```bash
-# Terminal 1 — infrastructure
-docker-compose up -d
-
-# Terminal 2 — ledger
-./gradlew :aiconomy-ledger:bootRun
-
-# Terminal 3 — market
-./gradlew :aiconomy-market:bootRun
-```
-
-### End-to-end trade (curl)
+Role packages exist as placeholders; Kafka loops and LangGraph graphs are not implemented yet.
 
 ```bash
-# 1. Create seller account (needs balance to receive payment later)
-curl -s -X POST http://localhost:8081/api/v1/accounts \
-  -H "Content-Type: application/json" \
-  -d '{"ownerId":"seller-1","accountType":"FIRM","initialBalance":0.00}'
-
-# 2. Create buyer account with funds
-curl -s -X POST http://localhost:8081/api/v1/accounts \
-  -H "Content-Type: application/json" \
-  -d '{"ownerId":"buyer-1","accountType":"CONSUMER","initialBalance":500.00}'
-
-# Copy account UUIDs from the JSON responses, then:
-
-# 3. Resting sell order — 5 WIDGET @ 10.00 (no trade yet)
-curl -s -X POST http://localhost:8082/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{"accountId":"<seller-uuid>","symbol":"WIDGET","side":"SELL","price":10.00,"quantity":5.00}'
-
-# 4. Matching buy — 3 WIDGET @ 12.00 → trades 3 @ 10.00, settles 30.00 via ledger
-curl -s -X POST http://localhost:8082/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{"accountId":"<buyer-uuid>","symbol":"WIDGET","side":"BUY","price":12.00,"quantity":3.00}'
-
-# 5. Top of book (2 WIDGET still offered @ 10.00)
-curl -s http://localhost:8082/api/v1/market/WIDGET/top
-
-# 6. Verify balances (buyer -30.00, seller +30.00)
-curl -s http://localhost:8081/api/v1/accounts/<buyer-uuid>
-curl -s http://localhost:8081/api/v1/accounts/<seller-uuid>
+cd agents
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
 ```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/orders` | POST | Submit limit order; match + settle trades |
-| `/api/v1/market/{symbol}/top` | GET | Best bid / best ask snapshot |
+| Package | Role |
+|---------|------|
+| `client_agent/` | Post projects, accept/reject deliveries |
+| `manager_agent/` | Negotiate with clients, hire and monitor workers |
+| `worker_agent/` | Claim tasks, deliver, subcontract |
+| `common/llm/` | `create_provider()` — mock / Ollama / Gemini |
+| `common/clients/ledger.py` | Account bootstrap via REST |
 
-Settlement follows **ADR-004**: match in Redis → `POST /transfers` on ledger → publish `trades.executed` on Kafka.
-
-### Kafka entry point (M2b)
-
-Agents can submit orders via Kafka instead of REST:
-
-```bash
-# Example: publish to orders.submitted (requires kafka-console-producer or agent code)
-# Payload JSON:
-# {"eventId":"...","accountId":"...","symbol":"WIDGET","side":"SELL","price":10.00,"quantity":5.00,"submittedAt":"..."}
-```
-
-| Topic | Direction | Payload |
-|-------|-----------|---------|
-| `orders.submitted` | → Market | `OrderSubmittedEvent` |
-| `trades.executed` | Market → | `TradeExecutedEvent` |
-
-REST `POST /api/v1/orders` remains available for manual testing; both paths publish `trades.executed` after settlement.
+See [agents/README.md](agents/README.md).
 
 ---
+
+## Environment
 
 Copy [.env.example](.env.example) to `.env`. Key variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_PROVIDER` | `ollama` | `ollama` or `gemini` |
+| `LLM_PROVIDER` | `ollama` | `mock`, `ollama`, or `gemini` |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
 | `POSTGRES_*` | see `.env.example` | Ledger database |
-| `REDIS_HOST` | `localhost` | Order book cache |
-| `LEDGER_BASE_URL` | `http://localhost:8081` | Ledger URL for market settlement |
+| `LEDGER_BASE_URL` | `http://localhost:8081` | Ledger REST API |
 
 ---
 
 ## Testing
 
 ```bash
-# Java (all modules) — also runs in GitHub Actions on every push to main
-./gradlew test
-
-# Infrastructure smoke test (Docker Compose must be up)
-./infra/scripts/smoke-test.sh
-
-# End-to-end trade (ledger + market must be running — see Market API section)
-./infra/scripts/e2e-trade.sh
-
-# Python agents (Milestone 3)
-cd agents && pytest
+./gradlew test                              # Java — runs in GitHub Actions
+./infra/scripts/smoke-test.sh               # Docker infra
+./infra/scripts/e2e-ledger.sh               # ledger must be running
+cd agents && pytest                         # Python unit tests
 ```
 
 ---
 
 ## Roadmap
 
-- [x] **M0a** — GitHub repo, Cursor rules, README, `.gitignore`
-- [x] **M0b** — Docker Compose (Postgres, Kafka, Redis) + smoke test
-- [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
-- [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
-- [x] **M2** — Market matching engine (Redis order book, REST API, ledger settlement)
-- [x] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`)
-- [ ] **M3** — Python agents (Ollama/Gemini) *(next)*
-- [ ] **M4** — Observability (Prometheus/Grafana)
-- [x] **M5a** — CI (GitHub Actions) + E2E trade script
-- [ ] **M5b** — CV polish, full E2E in CI *(follow-up)*
+- [x] **M0a** — GitHub repo, Cursor rules, README
+- [x] **M0b** — Docker Compose + smoke test
+- [x] **M0c** — Gradle multi-project skeleton
+- [x] **M1** — Ledger microservice (ACID transfers, REST, concurrency test)
+- [x] **M5a** — CI (GitHub Actions)
+- [ ] **M3** — Task marketplace + agents *(pivot — baseline committed)*
+  - [ ] M3a — Task domain + `aiconomy-tasks` service
+  - [ ] M3b — Ledger escrow (hold / release)
+  - [ ] M3c — ClientAgent + ManagerAgent + WorkerAgent loops
+  - [ ] M3d — Payment negotiation + LangGraph + LLM
+- [ ] **M4** — Analytics + observability
+- [ ] **M5b** — CV polish, E2E in CI
+
+**Retired:** WIDGET order-book market (M2/M2b) — replaced by task marketplace pivot (ADR-005).
 
 ---
 
 ## Contributing
 
-This is a portfolio / learning project. Commits follow [Conventional Commits](https://www.conventionalcommits.org/). See `.cursor/rules/` for coding standards.
+Portfolio / learning project. [Conventional Commits](https://www.conventionalcommits.org/). See `.cursor/rules/`.
 
 ---
 

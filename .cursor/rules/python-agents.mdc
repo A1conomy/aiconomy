@@ -9,19 +9,27 @@ alwaysApply: false
 ## LLM Provider (mandatory abstraction)
 
 - All agents use `create_provider()` from `agents/common/llm/` — never import Ollama or Gemini directly in agent logic.
-- Switch provider via `LLM_PROVIDER=ollama|gemini` env var.
+- Switch provider via `LLM_PROVIDER=mock|ollama|gemini` env var.
 - Tests use `MockLLMProvider` with deterministic responses.
+
+## Agent Roles
+
+| Package | Role |
+|---------|------|
+| `client_agent/` | Posts projects, accepts/rejects deliveries, owns budget |
+| `manager_agent/` | Negotiates with clients, hires workers, orchestrates and monitors |
+| `worker_agent/` | Claims tasks, delivers work, negotiates subcontract pay |
 
 ## Agent Communication
 
 - **Only Kafka** for inter-agent and agent-to-platform messaging. No HTTP calls between agents.
-- Consume: `market.quotes`, `macro.snapshots`, `simulation.tick`, `agent.{id}.balance`.
-- Produce: `orders.submitted`, `credit.applications`.
+- Ledger HTTP is allowed for account bootstrap and escrow operations only.
+- Consume: `tasks.posted`, `tasks.claimed`, `tasks.delivered`, `payments.proposed`, `simulation.tick`, `macro.snapshots`.
+- Produce: `tasks.claimed`, `tasks.delivered`, `payments.proposed`, `payments.accepted`.
 
 ## Code Style
 
 - Type hints on all public functions.
-- One agent role per package: `consumer_agent/`, `firm_agent/`, `central_bank_agent/`.
 - LangGraph: explicit state graph (observe → decide → act); document nodes in module docstring.
 - Structured logging with `correlation_id` from Kafka headers.
 

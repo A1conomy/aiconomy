@@ -1,0 +1,13 @@
+"""Kafka topic names for the AIconomy task marketplace (mirror Java KafkaTopics)."""
+
+TASKS_POSTED = "tasks.posted"
+TASKS_CLAIMED = "tasks.claimed"
+TASKS_DELIVERED = "tasks.delivered"
+TASKS_ACCEPTED = "tasks.accepted"
+TASKS_REJECTED = "tasks.rejected"
+PAYMENTS_PROPOSED = "payments.proposed"
+PAYMENTS_ACCEPTED = "payments.accepted"
+LEDGER_COMMANDS = "ledger.commands"
+LEDGER_EVENTS = "ledger.events"
+MACRO_SNAPSHOTS = "macro.snapshots"
+SIMULATION_TICK = "simulation.tick"

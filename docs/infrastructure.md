@@ -6,16 +6,16 @@ This document explains Docker, PostgreSQL, Kafka, and Redis in the context of ou
 
 ## The Big Picture
 
-Think of AIconomy as a **mini city economy**:
+Think of AIconomy as a **freelancing economy platform**:
 
 | Real world | AIconomy component | Tool |
 |------------|-------------------|------|
 | Bank vault & accounting books | Core Banking Ledger | **PostgreSQL** |
-| Newspaper / radio (announcements) | Event messaging | **Kafka** |
-| Stock exchange trading floor (live prices) | Order book | **Redis** |
+| Job board announcements | Event messaging | **Kafka** |
+| Fast session/cache state (future) | Hot projections | **Redis** |
 | City itself (where everything runs) | Local runtime | **Docker Compose** |
 
-Services (Spring Boot, Python agents) are **tenants in the city**. They don't talk directly to each other — they use Kafka and shared databases.
+Services (Spring Boot, Python agents) are **tenants in the city**. Agents don't call each other over HTTP — they use Kafka. The ledger is the only HTTP dependency for payments.
 
 ```mermaid
 flowchart LR
@@ -32,9 +32,8 @@ flowchart LR
 
     Spring -->|SQL ACID| PG
     Spring -->|publish/consume events| KF
-    Spring -->|order book read/write| RD
     Python -->|events only| KF
-    KF -->|TradeExecuted| Spring
+    KF -->|tasks / payments| Spring
 ```
 
 ---
@@ -64,15 +63,15 @@ docker-compose down -v    # stop + delete data
 
 **Why Postgres (not Redis/Mongo)?**
 - Strong consistency — critical for banking
-- Row-level locking — prevents race conditions when 50 AI agents transfer money simultaneously
+- Row-level locking — prevents race conditions when many agents transfer money simultaneously
 - `NUMERIC` type maps cleanly to Java `BigDecimal`
 
-**What we'll store (M1):**
+**What we store (M1):**
 ```
 accounts          → id, owner, balance, version (optimistic lock)
-ledger_entries    → debit account, credit account, amount, timestamp
-loans             → borrower, principal, interest rate
 ```
+
+Escrow holds and task records will extend this in M3.
 
 **Spring connection:**
 ```properties
@@ -91,9 +90,9 @@ spring.datasource.url=jdbc:postgresql://localhost:5432/aiconomy
 
 | Concept | Meaning | AIconomy example |
 |---------|---------|------------------|
-| **Topic** | Named channel for one event type | `orders.submitted` |
-| **Producer** | Sends messages to a topic | Python Firm agent publishes a buy order |
-| **Consumer** | Reads messages from a topic | Market service consumes orders |
+| **Topic** | Named channel for one event type | `tasks.posted` |
+| **Producer** | Sends messages to a topic | ClientAgent posts a project |
+| **Consumer** | Reads messages from a topic | Task service consumes new tasks |
 | **Partition** | Parallel sub-stream within a topic | 3 partitions = 3 concurrent consumers |
 | **Offset** | Position in the log | Lets consumers resume after restart |
 | **Broker** | Kafka server | Our `aiconomy-kafka` container |
@@ -102,19 +101,23 @@ spring.datasource.url=jdbc:postgresql://localhost:5432/aiconomy
 
 | Topic | Publisher | Consumer | Payload |
 |-------|-----------|----------|---------|
-| `orders.submitted` | Agents | Market | Buy/sell intent |
-| `trades.executed` | Market | Ledger | Matched trade details |
-| `ledger.commands` | Market, Agents | Ledger | Transfer/settle commands |
+| `tasks.posted` | ClientAgent | Task service, workers | New project/task |
+| `tasks.claimed` | Worker/Manager | Task service | Task assignment |
+| `tasks.delivered` | Worker | Client, Manager | Delivery submitted |
+| `tasks.accepted` | ClientAgent | Ledger, Analytics | Approval |
+| `tasks.rejected` | ClientAgent | Ledger, workers | Rejection |
+| `payments.proposed` | Any agent | Counterparty | Price negotiation |
+| `payments.accepted` | Counterparty | Ledger | Agreed payment |
+| `ledger.commands` | Task service | Ledger | Transfer/escrow commands |
 | `ledger.events` | Ledger | Agents, Analytics | Balance updates |
-| `market.quotes` | Market | Agents | Current prices |
-| `macro.snapshots` | Analytics | Agents, Central Bank | GDP, inflation |
-| `simulation.tick` | Scheduler | All agents | "Next day" signal |
+| `macro.snapshots` | Analytics | Agents | Economy metrics |
+| `simulation.tick` | Scheduler | All agents | Simulation clock |
 
 ### Why Kafka (not REST between services)?
 
-1. **Decoupling** — Agent doesn't need to know Market's URL
+1. **Decoupling** — Agents don't need to know each other's endpoints
 2. **Durability** — Events survive crashes; replay simulation from offset 0
-3. **Scale** — Hundreds of agents publishing without overwhelming one HTTP server
+3. **Scale** — Many agents publishing without overwhelming one HTTP server
 4. **Audit trail** — Every economic action is logged
 
 **Analogy:** A newspaper that never throws away old editions. Everyone reads the same feed.
@@ -125,62 +128,27 @@ Older Kafka needed Zookeeper (extra complexity). We use **KRaft** — Kafka mana
 
 ---
 
-## Redis — The Hot Order Book
+## Redis — Reserved for Hot State
 
-**Role:** In-memory store for **live market state** that changes every millisecond.
+**Role:** In-memory store for fast projections (optional in current baseline).
 
-**Why Redis (when we already have Kafka)?**
-
-| | Kafka | Redis |
-|---|-------|-------|
-| Speed | ms–s (disk log) | sub-ms (RAM) |
-| Data model | Append-only log | Key-value, sorted sets |
-| Best for | Events, audit, replay | Current state, rankings |
-
-**What we'll store (M2):**
-```
-orderbook:GOODS:bids    → sorted set (price → order JSON)
-orderbook:GOODS:asks    → sorted set
-market:last_price:GOODS → string
-```
-
-Matching engine reads top bid + top ask from Redis, matches if prices cross, then publishes `TradeExecuted` to Kafka → Ledger settles in Postgres.
-
-**Analogy:** The trading screen showing live prices. Kafka is the recording of every trade; Redis is what's on the screen right now.
+Redis remains in Docker Compose for future use (task queue cache, idempotency keys, rate limits). The retired WIDGET order book used Redis; the task marketplace will likely use Postgres first, Redis only if needed for hot paths.
 
 ---
 
-## End-to-End Flow (Future — M2/M3)
+## End-to-End Flow (Target — M3)
 
-Example: Consumer agent buys goods from a firm.
+Example: Client posts a project; manager hires a worker.
 
 ```
-1. Consumer agent → Kafka: orders.submitted {buy 10 units @ 5.00}
-2. Market service consumes → matches in Redis order book
-3. Market service → Kafka: trades.executed {buyer, seller, price, qty}
-4. Ledger service consumes → Postgres ACID transfer (buyer -50, seller +50)
-5. Ledger service → Kafka: ledger.events {new balances}
-6. Analytics consumes → updates GDP metric
-7. Agents consume market.quotes + ledger.events → next decision
-```
-
----
-
-## Connecting from Spring Boot (M0c preview)
-
-```yaml
-# application-docker.yml (coming in M0c)
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/aiconomy
-    username: aiconomy
-    password: change-me
-  kafka:
-    bootstrap-servers: localhost:9092
-  data:
-    redis:
-      host: localhost
-      port: 6379
+1. ClientAgent → Kafka: tasks.posted {project, budget}
+2. ManagerAgent consumes → negotiates price with client via payments.proposed
+3. WorkerAgent → Kafka: tasks.claimed {taskId}
+4. Ledger → escrow hold on agreed amount
+5. WorkerAgent → Kafka: tasks.delivered {deliverable}
+6. ClientAgent → Kafka: tasks.accepted
+7. Ledger → release escrow to worker (+ manager fee split)
+8. Analytics → macro.snapshots {task volume, avg rate}
 ```
 
 ---
@@ -188,26 +156,18 @@ spring:
 ## Useful Commands
 
 ```bash
-# Start / stop
 docker-compose up -d
 docker-compose down
-
-# Verify everything works
 ./infra/scripts/smoke-test.sh
 
-# Postgres shell
 docker-compose exec postgres psql -U aiconomy -d aiconomy
-
-# Redis shell
 docker-compose exec redis redis-cli
 
-# List Kafka topics
 docker-compose exec kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server localhost:29092 --list
 
-# Watch live events (debug)
 docker-compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
-  --bootstrap-server localhost:29092 --topic orders.submitted --from-beginning
+  --bootstrap-server localhost:29092 --topic tasks.posted --from-beginning
 ```
 
 ---

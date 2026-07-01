@@ -36,10 +36,10 @@ pass "Redis responds to PING"
 
 # Kafka — list topics
 TOPICS=$(docker-compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list)
-for topic in orders.submitted trades.executed ledger.commands ledger.events market.quotes macro.snapshots simulation.tick; do
+for topic in tasks.posted tasks.claimed tasks.delivered tasks.accepted tasks.rejected payments.proposed payments.accepted ledger.commands ledger.events macro.snapshots simulation.tick; do
   echo "$TOPICS" | grep -q "^${topic}$" || fail "Missing Kafka topic: ${topic}"
 done
-pass "Kafka topics exist (7/7)"
+pass "Kafka topics exist (11/11)"
 
 # Kafka — produce & consume test message
 TEST_TOPIC="infra.smoke-test"

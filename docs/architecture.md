@@ -16,10 +16,9 @@ This document records key architectural decisions. Update when making significan
 
 ## ADR-002: Kafka + Redis Split
 
-**Status:** Accepted  
+**Status:** Superseded by ADR-005  
 **Context:** Need durable events and fast order matching.  
 **Decision:** Kafka = event journal; Redis = hot order book projection.  
-**Alternatives:** Kafka-only; Redis Streams as sole broker.  
 **Rationale:** Clear CAP story at interviews — Postgres/Kafka CP, Redis AP for matching latency.
 
 ---
@@ -36,11 +35,40 @@ This document records key architectural decisions. Update when making significan
 
 ## ADR-004: Settlement Post-Trade
 
-**Status:** Accepted  
+**Status:** Superseded by ADR-005  
 **Context:** Avoid double-spend between market and ledger.  
 **Decision:** Match in Redis → emit `TradeExecuted` → ledger settles ACID.  
-**Alternatives:** Reserve funds before order submit.  
 **Rationale:** Simpler agent flow; ledger remains single source of truth for balances.
+
+---
+
+## ADR-005: Task Marketplace & Manager-Worker Model
+
+**Status:** Accepted (2026-07-01)  
+**Context:** WIDGET buy/sell simulation lacked economic motivation — no negotiation, specialization, or emergent dynamics.  
+**Decision:** Pivot to a **freelancing services economy**:
+
+- **ClientAgent** posts projects and accepts/rejects deliveries
+- **ManagerAgent** negotiates price with clients, hires workers, orchestrates delivery
+- **WorkerAgent** claims specialized tasks, delivers, subcontracts peers
+- **Ledger** provides payment rail + **escrow** (hold on accept, release on delivery approval)
+- **Kafka** carries task lifecycle and payment negotiation events
+- Retire `aiconomy-market` WIDGET order book
+
+**Alternatives:** Keep dual economy (goods + services); pure P2P without managers.  
+**Rationale:** Mirrors real freelancing/agency dynamics; strong fit for LangGraph multi-agent orchestration; ledger becomes infrastructure, not the product.
+
+### Task lifecycle (target)
+
+```
+OPEN → CLAIMED → DELIVERED → ACCEPTED | REJECTED
+```
+
+Escrow: hold funds when offer accepted → release on `tasks.accepted` → refund on reject (MVP).
+
+### Kafka topics
+
+`tasks.posted`, `tasks.claimed`, `tasks.delivered`, `tasks.accepted`, `tasks.rejected`, `payments.proposed`, `payments.accepted`
 
 ---
 
@@ -48,21 +76,12 @@ This document records key architectural decisions. Update when making significan
 
 ```
 aiconomy/
-├── aiconomy-common/     # Events, DTOs
-├── aiconomy-ledger/     # :8081
-├── aiconomy-market/     # :8082
-├── aiconomy-analytics/  # :8083
-├── agents/              # Python LangGraph
-└── infra/               # Prometheus, Grafana configs
+├── aiconomy-common/     # Events, DTOs, KafkaTopics
+├── aiconomy-ledger/     # :8081 — accounts, transfers, escrow
+├── aiconomy-tasks/      # :8082 — task board + lifecycle
+├── aiconomy-analytics/  # :8083 — macro metrics
+├── agents/              # client_agent, manager_agent, worker_agent
+└── infra/               # Prometheus, Grafana configs (planned)
 ```
 
 *Update this document as modules are implemented.*
-
-### M2 settlement flow (implemented)
-
-```
-POST /api/v1/orders  →  MatchingEngine (Redis)
-                     →  LedgerSettlementClient (HTTP POST /transfers)
-```
-
-Kafka event publishing is implemented: `orders.submitted` → market → `trades.executed`. REST API remains for curl testing.
