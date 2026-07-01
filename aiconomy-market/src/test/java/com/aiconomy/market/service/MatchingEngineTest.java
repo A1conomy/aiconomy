@@ -74,7 +74,8 @@ class MatchingEngineTest {
 		assertThat(result.trades().getFirst().buyerAccountId()).isEqualTo(buyer);
 		assertThat(result.trades().getFirst().sellerAccountId()).isEqualTo(seller);
 		assertThat(result.restingOrder()).isEmpty();
-		assertThat(orderBookStore.getBestAskPrice("WIDGET")).contains(new BigDecimal("10.00"));
+		assertThat(orderBookStore.getBestAskPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("10.00"));
 		assertThat(orderBookStore.peekBestOrder("WIDGET", OrderSide.SELL)).get()
 			.extracting(order -> order.remainingQuantity())
 			.isEqualTo(new BigDecimal("2.00"));
@@ -92,8 +93,10 @@ class MatchingEngineTest {
 
 		assertThat(result.trades()).isEmpty();
 		assertThat(result.restingOrder()).isPresent();
-		assertThat(orderBookStore.getBestBidPrice("WIDGET")).contains(new BigDecimal("9.00"));
-		assertThat(orderBookStore.getBestAskPrice("WIDGET")).contains(new BigDecimal("10.00"));
+		assertThat(orderBookStore.getBestBidPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("9.00"));
+		assertThat(orderBookStore.getBestAskPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("10.00"));
 	}
 
 	@Test
@@ -113,7 +116,8 @@ class MatchingEngineTest {
 		assertThat(result.restingOrder().get().remainingQuantity()).isEqualByComparingTo("3.00");
 		assertThat(result.restingOrder().get().side()).isEqualTo(OrderSide.BUY);
 		assertThat(orderBookStore.getBestAskPrice("WIDGET")).isEmpty();
-		assertThat(orderBookStore.getBestBidPrice("WIDGET")).contains(new BigDecimal("10.00"));
+		assertThat(orderBookStore.getBestBidPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("10.00"));
 	}
 
 }

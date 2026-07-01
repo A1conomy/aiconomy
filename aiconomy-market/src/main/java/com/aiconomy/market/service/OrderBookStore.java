@@ -1,6 +1,7 @@
 package com.aiconomy.market.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -84,7 +85,7 @@ public class OrderBookStore {
 		if (top == null || top.isEmpty()) {
 			return Optional.empty();
 		}
-		return Optional.of(BigDecimal.valueOf(top.iterator().next().getScore()));
+		return Optional.of(BigDecimal.valueOf(top.iterator().next().getScore()).setScale(2, RoundingMode.HALF_UP));
 	}
 
 	private static String orderKey(UUID orderId) {

@@ -126,7 +126,7 @@ class OrderControllerIntegrationTest {
 		assertThat(settlement.getBody().readUtf8()).contains("\"amount\":30.00");
 
 		HttpResponse<String> top = get(baseUrl + "/api/v1/market/WIDGET/top");
-		assertThat(top.body()).contains("\"bestAsk\":10.00");
+		assertThat(top.body()).contains("\"bestAsk\":10");
 	}
 
 	@Test

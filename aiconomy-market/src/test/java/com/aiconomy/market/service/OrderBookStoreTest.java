@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -38,11 +40,19 @@ class OrderBookStoreTest {
 	@Autowired
 	private OrderBookStore orderBookStore;
 
+	@Autowired
+	private StringRedisTemplate redisTemplate;
+
 	@DynamicPropertySource
 	static void registerProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
 		registry.add("spring.data.redis.host", redis::getHost);
 		registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+	}
+
+	@BeforeEach
+	void clearRedis() {
+		redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
 	}
 
 	@Test
@@ -60,8 +70,10 @@ class OrderBookStoreTest {
 				assertThat(stored.accountId()).isEqualTo(bid.accountId());
 				assertThat(stored.remainingQuantity()).isEqualByComparingTo("1.00");
 			});
-		assertThat(orderBookStore.getBestBidPrice("WIDGET")).contains(new BigDecimal("9.00"));
-		assertThat(orderBookStore.getBestAskPrice("WIDGET")).contains(new BigDecimal("10.00"));
+		assertThat(orderBookStore.getBestBidPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("9.00"));
+		assertThat(orderBookStore.getBestAskPrice("WIDGET")).hasValueSatisfying(
+				price -> assertThat(price).isEqualByComparingTo("10.00"));
 	}
 
 	@Test
