@@ -21,6 +21,7 @@ import com.aiconomy.market.domain.Trade;
 import com.aiconomy.market.dto.SubmitOrderRequest;
 import com.aiconomy.market.dto.SubmitOrderResponse;
 import com.aiconomy.market.domain.OrderSide;
+import com.aiconomy.market.event.TradeEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -30,6 +31,9 @@ class OrderServiceTest {
 
 	@Mock
 	private LedgerSettlementClient ledgerSettlementClient;
+
+	@Mock
+	private TradeEventPublisher tradeEventPublisher;
 
 	@InjectMocks
 	private OrderService orderService;
@@ -44,6 +48,7 @@ class OrderServiceTest {
 		SubmitOrderResponse response = orderService.submitOrder(request);
 
 		verify(ledgerSettlementClient).settle(trade);
+		verify(tradeEventPublisher).publish(trade);
 		assertThat(response.trades()).hasSize(1);
 		assertThat(response.trades().getFirst().settlementAmount()).isEqualByComparingTo("20.00");
 		assertThat(response.restingOrder()).isNull();

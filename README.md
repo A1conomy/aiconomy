@@ -228,7 +228,24 @@ curl -s http://localhost:8081/api/v1/accounts/<seller-uuid>
 | `/api/v1/orders` | POST | Submit limit order; match + settle trades |
 | `/api/v1/market/{symbol}/top` | GET | Best bid / best ask snapshot |
 
-Settlement follows **ADR-004**: match in Redis → `POST /transfers` on ledger (`price × quantity`).
+Settlement follows **ADR-004**: match in Redis → `POST /transfers` on ledger → publish `trades.executed` on Kafka.
+
+### Kafka entry point (M2b)
+
+Agents can submit orders via Kafka instead of REST:
+
+```bash
+# Example: publish to orders.submitted (requires kafka-console-producer or agent code)
+# Payload JSON:
+# {"eventId":"...","accountId":"...","symbol":"WIDGET","side":"SELL","price":10.00,"quantity":5.00,"submittedAt":"..."}
+```
+
+| Topic | Direction | Payload |
+|-------|-----------|---------|
+| `orders.submitted` | → Market | `OrderSubmittedEvent` |
+| `trades.executed` | Market → | `TradeExecutedEvent` |
+
+REST `POST /api/v1/orders` remains available for manual testing; both paths publish `trades.executed` after settlement.
 
 ---
 
@@ -269,8 +286,8 @@ cd agents && pytest
 - [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
 - [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
 - [x] **M2** — Market matching engine (Redis order book, REST API, ledger settlement)
-- [ ] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`) *(next)*
-- [ ] **M3** — Python agents (Ollama/Gemini)
+- [x] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`)
+- [ ] **M3** — Python agents (Ollama/Gemini) *(next)*
 - [ ] **M4** — Observability (Prometheus/Grafana)
 - [x] **M5a** — CI (GitHub Actions) + E2E trade script
 - [ ] **M5b** — CV polish, full E2E in CI *(follow-up)*

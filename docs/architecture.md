@@ -65,4 +65,4 @@ POST /api/v1/orders  →  MatchingEngine (Redis)
                      →  LedgerSettlementClient (HTTP POST /transfers)
 ```
 
-Kafka event publishing is planned as a follow-up; REST API is the current entry point for agents and curl testing.
+Kafka event publishing is implemented: `orders.submitted` → market → `trades.executed`. REST API remains for curl testing.

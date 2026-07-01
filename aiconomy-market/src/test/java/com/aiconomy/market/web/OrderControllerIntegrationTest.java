@@ -22,6 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import okhttp3.mockwebserver.MockResponse;
@@ -37,6 +38,8 @@ class OrderControllerIntegrationTest {
 
 	private static final DockerImageName REDIS_IMAGE = DockerImageName.parse("redis:7-alpine");
 
+	private static final DockerImageName KAFKA_IMAGE = DockerImageName.parse("apache/kafka:3.8.1");
+
 	private static final MockWebServer LEDGER_SERVER = new MockWebServer();
 
 	static {
@@ -47,6 +50,9 @@ class OrderControllerIntegrationTest {
 			throw new ExceptionInInitializerError(ex);
 		}
 	}
+
+	@Container
+	static KafkaContainer kafka = new KafkaContainer(KAFKA_IMAGE);
 
 	@Container
 	@SuppressWarnings("resource")
@@ -62,6 +68,7 @@ class OrderControllerIntegrationTest {
 
 	@DynamicPropertySource
 	static void registerProperties(DynamicPropertyRegistry registry) {
+		registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
 		registry.add("spring.data.redis.host", redis::getHost);
 		registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
 		registry.add("aiconomy.ledger.base-url", () -> LEDGER_SERVER.url("/").toString());
