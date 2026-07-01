@@ -1,5 +1,7 @@
 # AIconomy
 
+![CI](https://github.com/A1conomy/aiconomy/actions/workflows/ci.yml/badge.svg)
+
 > Event-Driven Agent-Based Macroeconomic Simulation Platform
 
 AIconomy simulates an autonomous economy where AI agents (consumers, firms, central bank) make financial decisions in a distributed, event-driven system. A **Core Banking Ledger** guarantees ACID fund transfers; an **Open Market Matching Engine** matches buy/sell orders in real time; **Python/LangGraph agents** act autonomously based on macroeconomic state.
@@ -245,8 +247,14 @@ Copy [.env.example](.env.example) to `.env`. Key variables:
 ## Testing
 
 ```bash
-# Java (all modules)
+# Java (all modules) — also runs in GitHub Actions on every push to main
 ./gradlew test
+
+# Infrastructure smoke test (Docker Compose must be up)
+./infra/scripts/smoke-test.sh
+
+# End-to-end trade (ledger + market must be running — see Market API section)
+./infra/scripts/e2e-trade.sh
 
 # Python agents (Milestone 3)
 cd agents && pytest
@@ -261,10 +269,11 @@ cd agents && pytest
 - [x] **M0c** — Gradle multi-project skeleton + Spring infra connectivity
 - [x] **M1** — Ledger microservice (ACID transfers, REST API, concurrency test)
 - [x] **M2** — Market matching engine (Redis order book, REST API, ledger settlement)
-- [ ] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`) *(follow-up)*
+- [ ] **M2b** — Kafka pipeline (`orders.submitted` / `trades.executed`) *(next)*
 - [ ] **M3** — Python agents (Ollama/Gemini)
 - [ ] **M4** — Observability (Prometheus/Grafana)
-- [ ] **M5** — CI, E2E, CV polish
+- [x] **M5a** — CI (GitHub Actions) + E2E trade script
+- [ ] **M5b** — CV polish, full E2E in CI *(follow-up)*
 
 ---
 
