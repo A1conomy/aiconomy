@@ -1,6 +1,7 @@
-package com.aiconomy.ledger.web;
+package com.aiconomy.tasks.web;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,35 +10,29 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.aiconomy.ledger.service.exception.AccountNotFoundException;
-import com.aiconomy.ledger.service.exception.EscrowNotFoundException;
-import com.aiconomy.ledger.service.exception.InsufficientFundsException;
-import com.aiconomy.ledger.service.exception.InvalidTransferAmountException;
+import com.aiconomy.tasks.service.exception.InvalidTaskStateException;
+import com.aiconomy.tasks.service.exception.TaskAuthorizationException;
+import com.aiconomy.tasks.service.exception.TaskNotFoundException;
 
 /**
- * Maps domain exceptions to HTTP status codes.
+ * Maps task domain exceptions to HTTP status codes.
  */
 @RestControllerAdvice
-public class LedgerExceptionHandler {
+public class TaskExceptionHandler {
 
-	@ExceptionHandler(AccountNotFoundException.class)
-	public ResponseEntity<Map<String, String>> handleNotFound(AccountNotFoundException ex) {
+	@ExceptionHandler(TaskNotFoundException.class)
+	public ResponseEntity<Map<String, String>> handleNotFound(TaskNotFoundException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
 	}
 
-	@ExceptionHandler(EscrowNotFoundException.class)
-	public ResponseEntity<Map<String, String>> handleEscrowNotFound(EscrowNotFoundException ex) {
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+	@ExceptionHandler(InvalidTaskStateException.class)
+	public ResponseEntity<Map<String, String>> handleInvalidState(InvalidTaskStateException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
 	}
 
-	@ExceptionHandler(InsufficientFundsException.class)
-	public ResponseEntity<Map<String, String>> handleInsufficientFunds(InsufficientFundsException ex) {
-		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of("error", ex.getMessage()));
-	}
-
-	@ExceptionHandler(InvalidTransferAmountException.class)
-	public ResponseEntity<Map<String, String>> handleInvalidAmount(InvalidTransferAmountException ex) {
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+	@ExceptionHandler(TaskAuthorizationException.class)
+	public ResponseEntity<Map<String, String>> handleAuthorization(TaskAuthorizationException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

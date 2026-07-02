@@ -13,6 +13,7 @@ def test_create_account_posts_to_ledger() -> None:
     config = AgentConfig(
         kafka_bootstrap_servers="localhost:9092",
         ledger_base_url="http://ledger.test",
+        tasks_base_url="http://tasks.test",
         llm_provider="mock",
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3",

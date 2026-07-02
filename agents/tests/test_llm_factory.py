@@ -11,6 +11,7 @@ def test_create_mock_provider_by_default() -> None:
     provider = create_provider(AgentConfig(
         kafka_bootstrap_servers="localhost:9092",
         ledger_base_url="http://localhost:8081",
+        tasks_base_url="http://localhost:8082",
         llm_provider="mock",
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3",
@@ -25,6 +26,7 @@ def test_create_ollama_provider() -> None:
     provider = create_provider(AgentConfig(
         kafka_bootstrap_servers="localhost:9092",
         ledger_base_url="http://localhost:8081",
+        tasks_base_url="http://localhost:8082",
         llm_provider="ollama",
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3",
@@ -38,6 +40,7 @@ def test_create_gemini_provider() -> None:
     provider = create_provider(AgentConfig(
         kafka_bootstrap_servers="localhost:9092",
         ledger_base_url="http://localhost:8081",
+        tasks_base_url="http://localhost:8082",
         llm_provider="gemini",
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3",

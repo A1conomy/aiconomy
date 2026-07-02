@@ -8,6 +8,9 @@ public enum AccountType {
 	CENTRAL_BANK,
 	COMMERCIAL,
 	FIRM,
-	CONSUMER
+	CONSUMER,
+	CLIENT,
+	MANAGER,
+	WORKER
 
 }
