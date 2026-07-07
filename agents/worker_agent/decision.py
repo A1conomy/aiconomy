@@ -8,3 +8,8 @@ from common.events import TaskSkill
 def should_claim_task(*, required_skill: TaskSkill, worker_skill: TaskSkill, budget: Decimal) -> bool:
     """Claim when skills match and budget meets minimum rate."""
     return required_skill == worker_skill and budget >= Decimal("50.00")
+
+
+def mock_deliverable_notes(*, title: str) -> str:
+    """Generate deterministic delivery text that passes client acceptance rules."""
+    return f"Deployed {title} to staging environment"

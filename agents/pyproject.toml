@@ -18,7 +18,10 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["common*", "client_agent*", "manager_agent*", "worker_agent*"]
+include = ["common*", "client_agent*", "manager_agent*", "worker_agent*", "simulation*"]
+
+[tool.setuptools.package-data]
+simulation = ["static/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -69,8 +69,49 @@ class TaskPostedEvent:
             "budget": float(payload["budget"]),
             "clientAgentId": payload["client_agent_id"],
             "clientAccountId": str(payload["client_account_id"]),
-            "postedAt": payload["posted_at"].isoformat() + "Z",
+            "postedAt": payload["posted_at"].isoformat().replace("+00:00", "Z"),
         }
+
+    @classmethod
+    def from_json_dict(cls, data: dict[str, Any]) -> TaskPostedEvent:
+        """Deserialize a tasks.posted payload emitted by the Java task service."""
+        posted_at_raw = data["postedAt"]
+        if posted_at_raw.endswith("Z"):
+            posted_at_raw = posted_at_raw[:-1] + "+00:00"
+        return cls(
+            event_id=UUID(data["eventId"]),
+            task_id=UUID(data["taskId"]),
+            project_id=UUID(data["projectId"]),
+            title=data["title"],
+            description=data["description"],
+            required_skill=TaskSkill(data["requiredSkill"]),
+            budget=Decimal(str(data["budget"])),
+            client_agent_id=data["clientAgentId"],
+            client_account_id=UUID(data["clientAccountId"]),
+            posted_at=datetime.fromisoformat(posted_at_raw),
+        )
+
+
+@dataclass(frozen=True)
+class TaskDeliveredEvent:
+    event_id: UUID
+    task_id: UUID
+    agent_id: str
+    deliverable_notes: str
+    delivered_at: datetime
+
+    @classmethod
+    def from_json_dict(cls, data: dict[str, Any]) -> TaskDeliveredEvent:
+        delivered_at_raw = data["deliveredAt"]
+        if delivered_at_raw.endswith("Z"):
+            delivered_at_raw = delivered_at_raw[:-1] + "+00:00"
+        return cls(
+            event_id=UUID(data["eventId"]),
+            task_id=UUID(data["taskId"]),
+            agent_id=data["agentId"],
+            deliverable_notes=data["deliverableNotes"],
+            delivered_at=datetime.fromisoformat(delivered_at_raw),
+        )
 
 
 @dataclass(frozen=True)
