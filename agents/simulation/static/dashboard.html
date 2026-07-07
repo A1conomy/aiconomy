@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIconomy — Live Demo</title>
+    <style>
+      :root {
+        --bg: #080c10;
+        --card: #0d1218;
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #e8eef4;
+        --muted: #a8b8c8;
+        --accent: #5eb8e8;
+        --open: #6b7280;
+        --claimed: #5eb8e8;
+        --delivered: #a78bfa;
+        --accepted: #34d399;
+        --rejected: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .glow {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(ellipse 60% 50% at 90% 0%, rgba(94,184,232,0.18), transparent 55%);
+      }
+      main {
+        position: relative;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+      }
+      h1 {
+        font-family: Georgia, serif;
+        font-weight: 500;
+        font-size: 2rem;
+        margin: 0 0 0.25rem;
+      }
+      .subtitle { color: var(--muted); margin: 0 0 2rem; }
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 900px) {
+        .grid { grid-template-columns: 1.4fr 1fr; }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+      }
+      .card h2 {
+        font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 1rem;
+      }
+      .phase {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .phase.running { color: var(--accent); border-color: rgba(94,184,232,0.4); }
+      .phase.complete { color: var(--accepted); border-color: rgba(52,211,153,0.4); }
+      .phase.failed { color: var(--rejected); border-color: rgba(248,113,113,0.4); }
+      .progress {
+        height: 8px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 1rem 0;
+      }
+      .progress > span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #2a7a9e, var(--accent));
+        transition: width 0.4s ease;
+      }
+      .task {
+        border-top: 1px solid var(--line);
+        padding: 0.85rem 0;
+      }
+      .task:first-of-type { border-top: none; padding-top: 0; }
+      .task-title { font-weight: 500; margin-bottom: 0.25rem; }
+      .task-meta { font-size: 0.875rem; color: var(--muted); }
+      .badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+      }
+      .badge-OPEN { background: rgba(107,114,128,0.2); color: #d1d5db; }
+      .badge-CLAIMED { background: rgba(94,184,232,0.15); color: var(--accent); }
+      .badge-DELIVERED { background: rgba(167,139,250,0.15); color: #c4b5fd; }
+      .badge-ACCEPTED { background: rgba(52,211,153,0.15); color: var(--accepted); }
+      .badge-REJECTED { background: rgba(248,113,113,0.15); color: var(--rejected); }
+      .account {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 0.9rem;
+      }
+      .account:first-of-type { border-top: none; }
+      .account .bal { color: var(--accent); font-variant-numeric: tabular-nums; }
+      .summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .stat {
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        padding: 0.75rem;
+      }
+      .stat label { display: block; font-size: 0.75rem; color: var(--muted); }
+      .stat strong { font-size: 1.1rem; }
+      .events {
+        font-family: ui-monospace, monospace;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: var(--muted);
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      .events div { padding: 0.15rem 0; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <main>
+      <h1>AIconomy Live Demo</h1>
+      <p class="subtitle">Mock multi-agent simulation — Kafka, tasks, escrow</p>
+      <p><span id="phase" class="phase">connecting</span></p>
+      <div class="progress"><span id="bar" style="width: 0%"></span></div>
+      <p id="progress-text" class="subtitle" style="margin-top: -1rem">0 / 0 tasks accepted</p>
+
+      <div class="grid" style="margin-top: 1.5rem">
+        <section class="card">
+          <h2>Task board</h2>
+          <div id="tasks"></div>
+        </section>
+        <section>
+          <div class="card" style="margin-bottom: 1rem">
+            <h2>Balances</h2>
+            <div class="summary">
+              <div class="stat">
+                <label>Client balance</label>
+                <strong id="client-balance">—</strong>
+              </div>
+              <div class="stat">
+                <label>Paid to workers</label>
+                <strong id="worker-paid">—</strong>
+              </div>
+            </div>
+            <div id="accounts"></div>
+          </div>
+          <div class="card">
+            <h2>Activity</h2>
+            <div id="events" class="events"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const statusClass = (s) => `badge badge-${s}`;
+
+      async function refresh() {
+        try {
+          const res = await fetch("/api/state");
+          const data = await res.json();
+
+          const phase = document.getElementById("phase");
+          phase.textContent = data.phase;
+          phase.className = "phase " + data.phase;
+
+          const accepted = data.progress?.accepted ?? 0;
+          const total = data.progress?.total ?? 0;
+          const pct = total ? Math.round((accepted / total) * 100) : 0;
+          document.getElementById("bar").style.width = pct + "%";
+          document.getElementById("progress-text").textContent =
+            accepted + " / " + total + " tasks accepted";
+
+          document.getElementById("client-balance").textContent = data.summary?.clientBalance ?? "—";
+          document.getElementById("worker-paid").textContent = data.summary?.workerPaidTotal ?? "—";
+
+          document.getElementById("tasks").innerHTML = (data.tasks || [])
+            .map(
+              (t) =>
+                `<div class="task">
+                  <div class="task-title">${t.title}<span class="${statusClass(t.status)}">${t.status}</span></div>
+                  <div class="task-meta">${t.requiredSkill} · budget ${t.budget}</div>
+                </div>`
+            )
+            .join("") || "<p class='task-meta'>Waiting for tasks…</p>";
+
+          document.getElementById("accounts").innerHTML = (data.accounts || [])
+            .map(
+              (a) =>
+                `<div class="account"><span>${a.ownerId}</span><span class="bal">${a.balance}</span></div>`
+            )
+            .join("");
+
+          document.getElementById("events").innerHTML = (data.events || [])
+            .slice()
+            .reverse()
+            .map((e) => `<div>${e}</div>`)
+            .join("");
+        } catch (err) {
+          document.getElementById("phase").textContent = "offline";
+        }
+      }
+
+      refresh();
+      setInterval(refresh, 1000);
+    </script>
+  </body>
+</html>

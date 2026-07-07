@@ -51,6 +51,11 @@ class TasksClient:
         response.raise_for_status()
         return response.json()
 
+    def get_task(self, task_id: UUID) -> dict[str, Any]:
+        response = self._client.get(f"/api/v1/tasks/{task_id}")
+        response.raise_for_status()
+        return response.json()
+
     def claim_task(self, task_id: UUID, *, agent_id: str, agent_account_id: UUID) -> dict[str, Any]:
         response = self._client.post(
             f"/api/v1/tasks/{task_id}/claim",

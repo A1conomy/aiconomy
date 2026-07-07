@@ -2,30 +2,50 @@
 
 Multi-agent freelancing simulation for AIconomy.
 
-## Agent roles
+**Quick demo:** `python scripts/run_orchestra_demo.py` → open http://127.0.0.1:8766
 
-| Package | Role |
-|---------|------|
-| `client_agent/` | Posts tasks, accepts/rejects deliveries |
-| `manager_agent/` | Negotiates manager fee via Kafka (`payments.proposed`) |
-| `worker_agent/` | Claims matching tasks, delivers work |
-| `common/` | Config, ledger/tasks HTTP clients, Kafka producer, events |
+## Roles
 
-## Run tests
+| Agent | Does |
+|-------|------|
+| Client | Posts tasks, accepts/rejects delivery |
+| Manager | Bids on jobs, hires workers, coordinates |
+| Worker | Claims tasks, delivers work |
+
+## Demos
+
+| Script | Needs Java? | URL |
+|--------|-------------|-----|
+| `run_orchestra_demo.py` | No | :8766 — full UX flow, mock data |
+| `run_visual_demo.py` | Yes (ledger + tasks) | :8765 — live Kafka simulation |
+| `run_simulation.py` | Yes | terminal only |
+| `demo_freelance.py` | Yes | single task, terminal |
 
 ```bash
 cd agents
-python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
+python scripts/run_orchestra_demo.py
 ```
 
-## Live demo
+## Survival economics (orchestra demo)
 
-Requires `docker-compose up`, ledger on `:8081`, and tasks on `:8082`:
+- 1 real second = 1 simulation day  
+- Each agent pays **$100/month** upkeep  
+- Tasks below the survival floor are rejected; managers/workers pass on unprofitable bids  
 
-```bash
-python scripts/demo_freelance.py
-```
+Logic lives in `simulation/orchestra/survival.py` — swappable without changing the UI.
 
-Flow: create accounts → client posts task → manager negotiates fee on Kafka → worker claims (escrow hold) → worker delivers → client accepts (escrow release).
+## Modular agents
+
+Replace mock implementations in `simulation/orchestra/mock/` with LLM-backed classes:
+
+| Protocol | Mock file |
+|----------|-----------|
+| Task intake (validate + price) | `mock/intake.py` |
+| Manager bidding | `mock/managers.py` |
+| Team assembly | `mock/team.py` |
+| Execution | `mock/execution.py` |
+| Client review | `mock/review.py` |
+
+See `simulation/orchestra/protocols.py` for interfaces.

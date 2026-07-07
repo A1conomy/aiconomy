@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIconomy — Orchestration Demo</title>
+    <style>
+      :root {
+        --bg: #080c10;
+        --card: #0d1218;
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #e8eef4;
+        --muted: #a8b8c8;
+        --accent: #5eb8e8;
+        --ok: #34d399;
+        --warn: #fbbf24;
+        --bad: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .glow {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(ellipse 55% 45% at 85% 0%, rgba(94,184,232,0.16), transparent 55%);
+      }
+      main {
+        position: relative;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-family: Georgia, serif;
+        font-weight: 500;
+        font-size: 2rem;
+        margin: 0 0 0.25rem;
+      }
+      .subtitle { color: var(--muted); margin: 0 0 1.5rem; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .card h2 {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 1rem;
+      }
+      label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+      input, textarea {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        padding: 0.65rem 0.75rem;
+        font: inherit;
+        margin-bottom: 0.75rem;
+      }
+      textarea { min-height: 88px; resize: vertical; }
+      button {
+        background: linear-gradient(135deg, #2a7a9e, var(--accent));
+        border: none;
+        color: #041018;
+        font-weight: 600;
+        padding: 0.65rem 1.25rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .stepper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .step {
+        font-size: 0.72rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .step.active { color: var(--accent); border-color: rgba(94,184,232,0.45); }
+      .step.done { color: var(--ok); border-color: rgba(52,211,153,0.35); }
+      .step.bad { color: var(--bad); border-color: rgba(248,113,113,0.35); }
+      .grid-2 {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 960px) {
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+      }
+      .validation {
+        padding: 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        font-size: 0.9rem;
+      }
+      .validation.ok { border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.08); }
+      .validation.bad { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.08); }
+      .bid-grid {
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      }
+      .bid {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+        opacity: 0.55;
+        transition: opacity 0.3s, border-color 0.3s, transform 0.3s;
+      }
+      .bid.visible { opacity: 1; }
+      .bid.winner {
+        border-color: rgba(94,184,232,0.55);
+        box-shadow: 0 0 0 1px rgba(94,184,232,0.2);
+        transform: translateY(-2px);
+      }
+      .bid.declined {
+        opacity: 0.65;
+        border-color: rgba(248,113,113,0.25);
+      }
+      .bid .fee { color: var(--accent); font-weight: 600; }
+      .bid .tag { font-size: 0.7rem; color: var(--muted); }
+      .plan-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      .plan-table th, .plan-table td {
+        text-align: left;
+        padding: 0.5rem 0.25rem;
+        border-top: 1px solid var(--line);
+      }
+      .plan-table th { color: var(--muted); font-weight: 500; font-size: 0.75rem; }
+      .attack-plan { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+      #graph-wrap {
+        background: rgba(255,255,255,0.02);
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        min-height: 280px;
+        overflow: hidden;
+      }
+      svg { width: 100%; height: 280px; display: block; }
+      .node { fill: #111820; stroke: rgba(94,184,232,0.5); stroke-width: 1.5; }
+      .node.client { stroke: rgba(251,191,36,0.6); }
+      .node.manager { stroke: rgba(94,184,232,0.7); }
+      .node.worker { stroke: rgba(167,139,250,0.55); }
+      .node-label { fill: var(--text); font-size: 11px; text-anchor: middle; }
+      .edge { fill: none; stroke: rgba(94,184,232,0.35); stroke-width: 1.2; }
+      .edge.assign { stroke: rgba(94,184,232,0.5); }
+      .edge.deliver { stroke: rgba(52,211,153,0.55); }
+      .edge.verify { stroke: rgba(167,139,250,0.5); }
+      .messages {
+        max-height: 180px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+      .msg { padding: 0.35rem 0; border-top: 1px solid var(--line); color: var(--muted); }
+      .msg strong { color: var(--text); font-weight: 500; }
+      .exec-step {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.4rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 0.82rem;
+      }
+      .exec-step .status-active { color: var(--accent); }
+      .exec-step .status-done { color: var(--ok); }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.35rem 0;
+        font-size: 0.88rem;
+        border-top: 1px solid var(--line);
+      }
+      .stat-row span:last-child { color: var(--accent); font-variant-numeric: tabular-nums; }
+      .events {
+        font-family: ui-monospace, monospace;
+        font-size: 0.75rem;
+        color: var(--muted);
+        max-height: 160px;
+        overflow-y: auto;
+        line-height: 1.5;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 0.72rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        margin-left: 0.5rem;
+      }
+      .pill.running { color: var(--accent); }
+      .pill.complete { color: var(--ok); }
+      .pill.rejected, .pill.failed { color: var(--bad); }
+      .survival-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+      .survival-table th, .survival-table td {
+        text-align: left;
+        padding: 0.4rem 0.25rem;
+        border-top: 1px solid var(--line);
+      }
+      .survival-table th { color: var(--muted); font-size: 0.72rem; }
+      .survival-table .bankrupt { color: var(--bad); }
+      .survival-meta { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <main>
+      <h1>AIconomy Orchestration</h1>
+      <p class="subtitle">
+        Submit a task — mock AI validates, managers bid, team executes, client pays.
+        <span id="phase-pill" class="pill">idle</span>
+      </p>
+
+      <section class="card">
+        <h2>Create task</h2>
+        <form id="task-form">
+          <label for="title">Title</label>
+          <input id="title" name="title" placeholder="Landing page with signup API" required />
+          <label for="description">Description</label>
+          <textarea id="description" name="description" placeholder="Responsive landing page, signup form, connect to REST API for registration..." required></textarea>
+          <button type="submit" id="submit-btn">Submit task</button>
+        </form>
+        <p class="subtitle" style="margin: 0.75rem 0 0; font-size: 0.8rem">
+          Try rejection: "quantum" or "impossible". Try client reject: "reject me".
+          Try survival reject: tiny budget task like title "Fix typo" / description "Change one word".
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Agent survival</h2>
+        <div id="survival"><p class="subtitle" style="margin:0">1 second = 1 sim-day · $100/month upkeep per agent</p></div>
+      </section>
+
+      <div class="stepper" id="stepper"></div>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2>AI intake</h2>
+          <div id="validation"><p class="subtitle" style="margin:0">Waiting for task…</p></div>
+        </section>
+        <section class="card">
+          <h2>Manager bids</h2>
+          <div id="bids" class="bid-grid"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Team plan &amp; price split</h2>
+        <div id="team-plan"><p class="subtitle" style="margin:0">—</p></div>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2>Agent graph</h2>
+          <div id="graph-wrap"><svg id="graph" viewBox="0 0 600 280"></svg></div>
+        </section>
+        <section class="card">
+          <h2>Conversation</h2>
+          <div id="messages" class="messages"></div>
+          <h2 style="margin-top:1rem">Execution</h2>
+          <div id="execution"></div>
+        </section>
+      </div>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2>Client review &amp; escrow</h2>
+          <div id="client-review"><p class="subtitle" style="margin:0">—</p></div>
+        </section>
+        <section class="card">
+          <h2>Balances</h2>
+          <div id="balances"><p class="subtitle" style="margin:0">—</p></div>
+          <h2 style="margin-top:1rem">Activity</h2>
+          <div id="events" class="events"></div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const STEPS = [
+        { id: "submitted", label: "Submit" },
+        { id: "validating", label: "AI validate" },
+        { id: "manager_bidding", label: "Manager bids" },
+        { id: "team_planning", label: "Team plan" },
+        { id: "executing", label: "Execute" },
+        { id: "client_review", label: "Client review" },
+        { id: "paid", label: "Pay" },
+        { id: "complete", label: "Done" },
+      ];
+
+      const form = document.getElementById("task-form");
+      const submitBtn = document.getElementById("submit-btn");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        try {
+          const res = await fetch("/api/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: document.getElementById("title").value,
+              description: document.getElementById("description").value,
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            alert(err.error || "Submit failed");
+            submitBtn.disabled = false;
+          }
+        } catch {
+          alert("Could not reach dashboard server");
+          submitBtn.disabled = false;
+        }
+      });
+
+      function renderStepper(phase) {
+        const order = STEPS.map((s) => s.id);
+        const idx = order.indexOf(phase);
+        const rejected = phase === "rejected" || phase === "payment_held";
+        document.getElementById("stepper").innerHTML = STEPS.map((step, i) => {
+          let cls = "step";
+          if (rejected && step.id === "validating") cls += " bad";
+          else if (phase === "complete" || i < idx) cls += " done";
+          else if (step.id === phase || (phase === "paid" && step.id === "paid") || (phase === "payment_held" && step.id === "client_review")) cls += " active";
+          return `<span class="${cls}">${step.label}</span>`;
+        }).join("");
+      }
+
+      function renderValidation(v) {
+        const el = document.getElementById("validation");
+        if (!v) {
+          el.innerHTML = '<p class="subtitle" style="margin:0">Waiting…</p>';
+          return;
+        }
+        const cls = v.accepted ? "ok" : "bad";
+        el.innerHTML = `
+          <div class="validation ${cls}">
+            <div>${v.accepted ? "Accepted" : "Rejected"}</div>
+            <div style="margin-top:0.35rem;color:var(--muted)">${v.reason}</div>
+            ${v.estimatedCost ? `<div style="margin-top:0.5rem">Estimated cost: <strong style="color:var(--accent)">$${v.estimatedCost}</strong></div>` : ""}
+            ${v.estimatedDurationDays ? `<div style="margin-top:0.35rem;font-size:0.8rem">Duration: ${v.estimatedDurationDays} sim-days</div>` : ""}
+            ${v.survivalFloor ? `<div style="margin-top:0.35rem;font-size:0.8rem">Survival floor: $${v.survivalFloor}</div>` : ""}
+            ${v.requiredSkills?.length ? `<div style="margin-top:0.35rem;font-size:0.8rem">Skills: ${v.requiredSkills.join(", ")}</div>` : ""}
+          </div>`;
+      }
+
+      function renderBids(bids) {
+        document.getElementById("bids").innerHTML = (bids || [])
+          .map(
+            (b) => `
+            <div class="bid visible ${b.isWinner ? "winner" : ""} ${b.accepted === false ? "declined" : ""}">
+              <div>${b.displayName}${b.isThinker ? " (AI)" : ""}${b.accepted === false ? " — passed" : ""}</div>
+              <div class="fee">${b.feePercent}% · $${b.feeAmount}</div>
+              <div class="tag">${b.accepted === false ? b.declineReason : b.pitch}</div>
+            </div>`
+          )
+          .join("") || '<p class="subtitle" style="margin:0">—</p>';
+      }
+
+      function renderTeamPlan(plan) {
+        const el = document.getElementById("team-plan");
+        if (!plan) {
+          el.innerHTML = '<p class="subtitle" style="margin:0">—</p>';
+          return;
+        }
+        const rows = (plan.assignments || [])
+          .map(
+            (a) =>
+              `<tr><td>${a.displayName}</td><td>${a.skill}</td><td>${a.subtask}</td><td>$${a.payout}</td></tr>`
+          )
+          .join("");
+        el.innerHTML = `
+          <p style="margin:0 0 0.75rem">Manager <strong>${plan.managerName}</strong> · fee $${plan.managerFee} · total $${plan.totalCost}</p>
+          <table class="plan-table">
+            <thead><tr><th>Agent</th><th>Skill</th><th>Subtask</th><th>Payout</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <p style="margin:1rem 0 0.35rem;font-size:0.75rem;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase">Attack plan</p>
+          <ol class="attack-plan">${(plan.attackPlan || []).map((s) => `<li>${s}</li>`).join("")}</ol>`;
+      }
+
+      function nodeKind(id, data) {
+        if (id === data.request?.clientId) return "client";
+        if (data.bids?.some((b) => b.managerId === id && b.isWinner)) return "manager";
+        if (data.bids?.some((b) => b.managerId === id)) return "manager";
+        return "worker";
+      }
+
+      function renderGraph(data) {
+        const svg = document.getElementById("graph");
+        const nodes = data.graph?.nodes || [];
+        const edges = data.graph?.edges || [];
+        if (!nodes.length) {
+          svg.innerHTML = "";
+          return;
+        }
+        const positions = {};
+        const cx = 300;
+        const client = nodes.find((n) => n.id === data.request?.clientId);
+        const manager = nodes.find((n) => data.winningBid?.managerId === n.id || data.bids?.find((b) => b.isWinner && b.managerId === n.id));
+        const workers = nodes.filter((n) => n.id !== client?.id && n.id !== manager?.id);
+
+        if (client) positions[client.id] = { x: 80, y: 140 };
+        if (manager) positions[manager.id] = { x: cx, y: 140 };
+        workers.forEach((w, i) => {
+          const angle = (Math.PI / (workers.length + 1)) * (i + 1);
+          positions[w.id] = { x: 480, y: 60 + i * (160 / Math.max(workers.length, 1)) };
+        });
+
+        const edgePaths = edges
+          .map((e) => {
+            const from = positions[e.from];
+            const to = positions[e.to];
+            if (!from || !to) return "";
+            const mx = (from.x + to.x) / 2;
+            return `<path class="edge ${e.kind}" d="M${from.x},${from.y} Q${mx},${from.y - 30} ${to.x},${to.y}" />`;
+          })
+          .join("");
+
+        const nodeEls = nodes
+          .map((n) => {
+            const p = positions[n.id];
+            if (!p) return "";
+            const kind = nodeKind(n.id, data);
+            return `
+              <g>
+                <circle class="node ${kind}" cx="${p.x}" cy="${p.y}" r="22" />
+                <text class="node-label" x="${p.x}" y="${p.y + 38}">${n.label.split(" ")[0]}</text>
+              </g>`;
+          })
+          .join("");
+
+        svg.innerHTML = edgePaths + nodeEls;
+      }
+
+      function renderMessages(msgs) {
+        document.getElementById("messages").innerHTML = (msgs || [])
+          .slice()
+          .reverse()
+          .map(
+            (m) =>
+              `<div class="msg"><strong>${m.fromLabel}</strong> → ${m.toLabel}: ${m.content}</div>`
+          )
+          .join("") || '<p class="subtitle" style="margin:0">—</p>';
+      }
+
+      function renderExecution(steps) {
+        document.getElementById("execution").innerHTML = (steps || [])
+          .map(
+            (s) =>
+              `<div class="exec-step"><span>${s.agentLabel}: ${s.action}</span><span class="status-${s.status}">${s.status}</span></div>`
+          )
+          .join("") || '<p class="subtitle" style="margin:0">—</p>';
+      }
+
+      function renderClientReview(data) {
+        const el = document.getElementById("client-review");
+        if (!data.clientFeedback) {
+          el.innerHTML = '<p class="subtitle" style="margin:0">—</p>';
+          return;
+        }
+        const ok = data.paymentReleased;
+        el.innerHTML = `
+          <div class="validation ${ok ? "ok" : "bad"}">
+            <div>${ok ? "Payment released" : "Payment held"}</div>
+            <div style="margin-top:0.35rem;color:var(--muted)">${data.clientFeedback}</div>
+          </div>`;
+      }
+
+      function renderSurvival(s) {
+        const el = document.getElementById("survival");
+        if (!s || !s.agents?.length) {
+          el.innerHTML = `<p class="survival-meta">${s?.rule || "1 second = 1 sim-day"} · $${s?.monthlyMaintenance || "100"}/month upkeep</p>`;
+          return;
+        }
+        const rows = s.agents
+          .map(
+            (a) =>
+              `<tr class="${a.solvent ? "" : "bankrupt"}">
+                <td>${a.displayName}</td>
+                <td>${a.role}</td>
+                <td>$${a.balance}</td>
+                <td>$${a.maintenancePaid}</td>
+                <td>${a.solvent ? "solvent" : "bankrupt"}</td>
+              </tr>`
+          )
+          .join("");
+        el.innerHTML = `
+          <p class="survival-meta">Sim day <strong style="color:var(--accent)">${s.simDay}</strong> · $${s.dailyMaintenance}/day · ${s.rule}</p>
+          <table class="survival-table">
+            <thead><tr><th>Agent</th><th>Role</th><th>Balance</th><th>Upkeep paid</th><th>Status</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      }
+
+      function renderBalances(bal) {
+        const el = document.getElementById("balances");
+        if (!bal) {
+          el.innerHTML = '<p class="subtitle" style="margin:0">—</p>';
+          return;
+        }
+        const workers = Object.entries(bal.workerBalances || {})
+          .map(([id, amount]) => `<div class="stat-row"><span>${id}</span><span>$${amount}</span></div>`)
+          .join("");
+        el.innerHTML = `
+          <div class="stat-row"><span>Client</span><span>$${bal.clientBalance}</span></div>
+          <div class="stat-row"><span>Manager</span><span>$${bal.managerBalance}</span></div>
+          ${workers}`;
+      }
+
+      async function refresh() {
+        try {
+          const res = await fetch("/api/state");
+          const data = await res.json();
+          const phase = data.phase || "idle";
+          const pill = document.getElementById("phase-pill");
+          pill.textContent = phase;
+          pill.className = "pill " + (data.isRunning ? "running" : phase);
+
+          submitBtn.disabled = data.isRunning;
+          renderStepper(phase);
+          renderValidation(data.validation);
+          renderBids(data.bids);
+          renderTeamPlan(data.teamPlan);
+          renderGraph(data);
+          renderMessages(data.messages);
+          renderExecution(data.executionSteps);
+          renderClientReview(data);
+          renderSurvival(data.survival);
+          renderBalances(data.balances);
+          document.getElementById("events").innerHTML = (data.events || [])
+            .slice()
+            .reverse()
+            .map((e) => `<div>${e}</div>`)
+            .join("");
+        } catch {
+          document.getElementById("phase-pill").textContent = "offline";
+        }
+      }
+
+      document.getElementById("title").value = "Product launch landing page";
+      document.getElementById("description").value =
+        "Responsive landing page with hero section, signup form, and REST API integration for user registration (Spring Boot + Postgres).";
+      refresh();
+      setInterval(refresh, 800);
+    </script>
+  </body>
+</html>
